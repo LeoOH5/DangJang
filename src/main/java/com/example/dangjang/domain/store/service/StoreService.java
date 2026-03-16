@@ -4,9 +4,20 @@ import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.market.entity.Market;
 import com.example.dangjang.domain.market.entity.MarketStatus;
+import com.example.dangjang.domain.discount.entity.DiscountStatus;
+import com.example.dangjang.domain.discount.entity.ProductDiscount;
+import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
+import com.example.dangjang.domain.market.entity.Market;
+import com.example.dangjang.domain.market.entity.MarketStatus;
 import com.example.dangjang.domain.market.repository.MarketRepository;
+import com.example.dangjang.domain.product.entity.Product;
+import com.example.dangjang.domain.product.repository.ProductRepository;
+import com.example.dangjang.domain.store.dto.ProductWithDiscountResponse;
 import com.example.dangjang.domain.store.dto.StoreCreateRequest;
 import com.example.dangjang.domain.store.dto.StoreCreateResponse;
+import com.example.dangjang.domain.store.dto.StoreDetailResponse;
+import com.example.dangjang.domain.store.dto.StoreUpdateRequest;
+import com.example.dangjang.domain.store.dto.StoreUpdateResponse;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.entity.StoreStatus;
 import com.example.dangjang.domain.store.repository.StoreRepository;
@@ -14,7 +25,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +35,8 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final MarketRepository marketRepository;
+    private final ProductRepository productRepository;
+    private final ProductDiscountRepository productDiscountRepository;
 
     @Transactional
     public StoreCreateResponse createStore(StoreCreateRequest request) {
@@ -54,6 +69,93 @@ public class StoreService {
 
         Store saved = storeRepository.save(store);
         return new StoreCreateResponse(saved.getId());
+    }
+
+    @Transactional
+    public StoreUpdateResponse updateStore(Long storeId, StoreUpdateRequest request) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        LocalTime openTime = LocalTime.parse(request.getOpenTime());
+        LocalTime closeTime = LocalTime.parse(request.getCloseTime());
+
+        if (openTime.isAfter(closeTime)) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        store.update(
+                request.getName(),
+                request.getDescription(),
+                request.getPhone(),
+                request.getAddress(),
+                openTime,
+                closeTime,
+                request.getStatus()
+        );
+
+        return new StoreUpdateResponse(store.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public StoreDetailResponse getStoreDetail(Long storeId) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        List<Product> products = productRepository.findByStore(store);
+        LocalDateTime now = LocalDateTime.now();
+
+        List<ProductWithDiscountResponse> productResponses = products.stream()
+                .map(product -> {
+                    List<ProductDiscount> discounts =
+                            productDiscountRepository.findByProductAndStatus(product, DiscountStatus.ACTIVE);
+
+                    ProductDiscount active = discounts.stream()
+                            .filter(d -> d.isActiveNow(now))
+                            .findFirst()
+                            .orElse(null);
+
+                    ProductWithDiscountResponse.ActiveDiscountResponse activeResponse = null;
+                    boolean hasActiveDiscount = active != null;
+
+                    if (active != null) {
+                        activeResponse = new ProductWithDiscountResponse.ActiveDiscountResponse(
+                                active.getId(),
+                                active.getTitle(),
+                                active.getDiscountType(),
+                                active.getDiscountValue(),
+                                active.getDiscountPrice(),
+                                active.getStartAt(),
+                                active.getEndAt(),
+                                active.getStatus()
+                        );
+                    }
+
+                    return new ProductWithDiscountResponse(
+                            product.getId(),
+                            product.getName(),
+                            product.getDescription(),
+                            product.getOriginalPrice(),
+                            product.getStockQuantity(),
+                            product.getImageUrl(),
+                            product.getStatus(),
+                            hasActiveDiscount,
+                            activeResponse
+                    );
+                })
+                .toList();
+
+        return new StoreDetailResponse(
+                store.getId(),
+                store.getMarket().getId(),
+                store.getName(),
+                store.getDescription(),
+                store.getPhone(),
+                store.getAddress(),
+                store.getOpenTime() != null ? store.getOpenTime().toString() : null,
+                store.getCloseTime() != null ? store.getCloseTime().toString() : null,
+                store.getStatus(),
+                productResponses
+        );
     }
 }
 
