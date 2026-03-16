@@ -19,6 +19,7 @@ public enum ErrorCode {
     // Market
     MARKET_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_001", "존재하지 않는 시장입니다."),
     MARKET_INACTIVE(HttpStatus.BAD_REQUEST, "MARKET_002", "비활성화된 시장입니다."),
+    MARKET_ALREADY_EXISTS(HttpStatus.CONFLICT, "MARKET_ALREADY_EXISTS", "이미 등록된 시장입니다."),
 
     // Store
     STORE_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE_001", "존재하지 않는 매장입니다."),
