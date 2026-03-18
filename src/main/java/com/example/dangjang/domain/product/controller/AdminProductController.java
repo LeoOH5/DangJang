@@ -4,6 +4,8 @@ import com.example.dangjang.common.annotation.AdminOnly;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.product.dto.ProductCreateRequest;
 import com.example.dangjang.domain.product.dto.ProductCreateResponse;
+import com.example.dangjang.domain.product.dto.ProductStatusUpdateRequest;
+import com.example.dangjang.domain.product.dto.ProductStatusUpdateResponse;
 import com.example.dangjang.domain.product.dto.ProductUpdateRequest;
 import com.example.dangjang.domain.product.dto.ProductUpdateResponse;
 import com.example.dangjang.domain.product.service.ProductService;
@@ -38,5 +40,16 @@ public class AdminProductController {
     ) {
         ProductUpdateResponse response = productService.updateProduct(productId, request);
         return ApiResponse.ok("상품 수정 성공", response);
+    }
+
+    @AdminOnly
+    @PatchMapping("/{productId}/status")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ProductStatusUpdateResponse> updateProductStatus(
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductStatusUpdateRequest request
+    ) {
+        ProductStatusUpdateResponse response = productService.updateProductStatus(productId, request);
+        return ApiResponse.ok("상품 상태 변경 성공", response);
     }
 }
