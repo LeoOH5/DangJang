@@ -79,6 +79,10 @@ public class Product extends BaseTimeEntity {
         this.status = ProductStatus.INACTIVE;
     }
 
+    public void changeStatus(ProductStatus status) {
+        this.status = status;
+    }
+
     private void validateStockQuantity(Integer stockQuantity) {
         if (stockQuantity == null || stockQuantity < 0) {
             throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
