@@ -29,6 +29,7 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_001", "존재하지 않는 상품입니다."),
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT_002", "비활성화된 상품입니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT_003", "재고 수량은 0 이상이어야 합니다."),
+    PRODUCT_ALREADY_EXISTS(HttpStatus.CONFLICT, "PRODUCT_ALREADY_EXISTS", "이미 등록된 상품입니다."),
 
     // Discount
     DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "DISCOUNT_001", "존재하지 않는 할인 정보입니다."),
