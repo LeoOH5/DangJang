@@ -4,7 +4,10 @@ import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.product.dto.ProductCreateRequest;
 import com.example.dangjang.domain.product.dto.ProductCreateResponse;
+import com.example.dangjang.domain.product.dto.ProductUpdateRequest;
+import com.example.dangjang.domain.product.dto.ProductUpdateResponse;
 import com.example.dangjang.domain.product.entity.Product;
+import com.example.dangjang.domain.product.entity.ProductStatus;
 import com.example.dangjang.domain.product.repository.ProductRepository;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.entity.StoreStatus;
@@ -46,5 +49,26 @@ public class ProductService {
 
         Product saved = productRepository.save(product);
         return new ProductCreateResponse(saved.getId());
+    }
+
+    @Transactional
+    public ProductUpdateResponse updateProduct(Long productId, ProductUpdateRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (product.getStatus() == ProductStatus.INACTIVE) {
+            throw new BusinessException(ErrorCode.PRODUCT_INACTIVE);
+        }
+
+        product.update(
+                request.getName(),
+                request.getDescription(),
+                request.getOriginalPrice(),
+                request.getStockQuantity(),
+                request.getImageUrl(),
+                request.getStatus()
+        );
+
+        return new ProductUpdateResponse(product.getId());
     }
 }
