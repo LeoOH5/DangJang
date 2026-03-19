@@ -101,7 +101,7 @@ public class ProductDiscount extends BaseTimeEntity {
                           BigDecimal discountValue, BigDecimal discountPrice,
                           Integer remainingQuantity) {
         if (startAt == null || endAt == null || !startAt.isBefore(endAt)) {
-            throw new BusinessException(ErrorCode.INVALID_DISCOUNT_PERIOD);
+            throw new BusinessException(ErrorCode.INVALID_DISCOUNT_TIME);
         }
 
         if (discountValue == null || discountValue.compareTo(BigDecimal.ZERO) < 0) {
