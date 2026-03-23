@@ -90,6 +90,10 @@ public class ProductDiscount extends BaseTimeEntity {
         this.product = product;
     }
 
+    public void changeStatus(DiscountStatus status) {
+        this.status = status;
+    }
+
     public boolean isActiveNow(LocalDateTime now) {
         return status == DiscountStatus.ACTIVE
                 && !now.isBefore(startAt)
