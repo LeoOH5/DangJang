@@ -4,6 +4,8 @@ import com.example.dangjang.common.annotation.AdminOnly;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateResponse;
+import com.example.dangjang.domain.discount.dto.ProductDiscountStatusUpdateRequest;
+import com.example.dangjang.domain.discount.dto.ProductDiscountStatusUpdateResponse;
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateResponse;
 import com.example.dangjang.domain.discount.service.ProductDiscountService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 @RestController
 @RequestMapping("/api/v1/admin/product-discounts")
@@ -44,6 +47,18 @@ public class AdminProductDiscountController {
     ) {
         ProductDiscountUpdateResponse response = productDiscountService.updateProductDiscount(productDiscountId, request);
         return ApiResponse.ok("상품 할인 수정 성공", response);
+    }
+
+    @AdminOnly
+    @PatchMapping("/{productDiscountId}/status")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ProductDiscountStatusUpdateResponse> updateProductDiscountStatus(
+            @PathVariable Long productDiscountId,
+            @Valid @RequestBody ProductDiscountStatusUpdateRequest request
+    ) {
+        ProductDiscountStatusUpdateResponse response =
+                productDiscountService.updateProductDiscountStatus(productDiscountId, request);
+        return ApiResponse.ok("할인 상태 변경 성공", response);
     }
 }
 

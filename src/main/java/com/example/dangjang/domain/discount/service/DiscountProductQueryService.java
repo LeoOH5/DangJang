@@ -24,7 +24,12 @@ public class DiscountProductQueryService {
         LocalDateTime now = LocalDateTime.now();
 
         var discountPage =
-                productDiscountRepository.findActiveDiscountProducts(now, pageable);
+                productDiscountRepository.findActiveDiscountProducts(
+                        now,
+                        DiscountStatus.ACTIVE,
+                        DiscountStatus.SCHEDULED,
+                        pageable
+                );
 
         return new DiscountProductListResponse(
                 discountPage.getContent().stream()
@@ -57,7 +62,7 @@ public class DiscountProductQueryService {
                 pd.getStartAt(),
                 pd.getEndAt(),
                 pd.getRemainingQuantity(),
-                DiscountStatus.ACTIVE
+                pd.getStatus()
         );
     }
 }

@@ -6,6 +6,8 @@ import com.example.dangjang.domain.discount.dto.ProductDiscountCreateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateResponse;
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateResponse;
+import com.example.dangjang.domain.discount.dto.ProductDiscountStatusUpdateRequest;
+import com.example.dangjang.domain.discount.dto.ProductDiscountStatusUpdateResponse;
 import com.example.dangjang.domain.discount.entity.DiscountStatus;
 import com.example.dangjang.domain.discount.entity.DiscountType;
 import com.example.dangjang.domain.discount.entity.ProductDiscount;
@@ -115,6 +117,16 @@ public class ProductDiscountService {
         );
 
         return new ProductDiscountUpdateResponse(discount.getId(), discountPrice, status);
+    }
+
+    @Transactional
+    public ProductDiscountStatusUpdateResponse updateProductDiscountStatus(Long productDiscountId,
+                                                                                  ProductDiscountStatusUpdateRequest request) {
+        ProductDiscount discount = productDiscountRepository.findById(productDiscountId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_DISCOUNT_NOT_FOUND));
+
+        discount.changeStatus(request.getStatus());
+        return new ProductDiscountStatusUpdateResponse(discount.getId(), discount.getStatus());
     }
 
     private BigDecimal calculateDiscountPrice(BigDecimal originalPrice, DiscountType type, BigDecimal value) {
