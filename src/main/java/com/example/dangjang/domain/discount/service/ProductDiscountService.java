@@ -4,6 +4,8 @@ import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateResponse;
+import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateRequest;
+import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateResponse;
 import com.example.dangjang.domain.discount.entity.DiscountStatus;
 import com.example.dangjang.domain.discount.entity.DiscountType;
 import com.example.dangjang.domain.discount.entity.ProductDiscount;
@@ -70,6 +72,51 @@ public class ProductDiscountService {
         return new ProductDiscountCreateResponse(saved.getId(), saved.getDiscountPrice(), saved.getStatus());
     }
 
+    @Transactional
+    public ProductDiscountUpdateResponse updateProductDiscount(Long productDiscountId, ProductDiscountUpdateRequest request) {
+        ProductDiscount discount = productDiscountRepository.findById(productDiscountId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_DISCOUNT_NOT_FOUND));
+
+        Product product = discount.getProduct();
+
+        if (product.getStatus() == ProductStatus.INACTIVE) {
+            throw new BusinessException(ErrorCode.PRODUCT_INACTIVE);
+        }
+
+        LocalDateTime startAt = LocalDateTime.parse(request.getStartAt());
+        LocalDateTime endAt = LocalDateTime.parse(request.getEndAt());
+
+        if (!startAt.isBefore(endAt)) {
+            throw new BusinessException(ErrorCode.INVALID_DISCOUNT_TIME);
+        }
+
+        BigDecimal discountPrice = calculateDiscountPrice(
+                product.getOriginalPrice(),
+                request.getDiscountType(),
+                request.getDiscountValue()
+        );
+
+        LocalDateTime now = LocalDateTime.now();
+        DiscountStatus status = now.isBefore(startAt)
+                ? DiscountStatus.SCHEDULED
+                : (now.isAfter(endAt) ? DiscountStatus.ENDED : DiscountStatus.ACTIVE);
+
+        validateDiscountConflictsForUpdate(product, productDiscountId, request, startAt, endAt);
+
+        discount.update(
+                request.getTitle(),
+                request.getDiscountType(),
+                request.getDiscountValue(),
+                discountPrice,
+                startAt,
+                endAt,
+                request.getRemainingQuantity(),
+                status
+        );
+
+        return new ProductDiscountUpdateResponse(discount.getId(), discountPrice, status);
+    }
+
     private BigDecimal calculateDiscountPrice(BigDecimal originalPrice, DiscountType type, BigDecimal value) {
         if (originalPrice == null || originalPrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.INVALID_DISCOUNT_VALUE);
@@ -128,6 +175,45 @@ public class ProductDiscountService {
         }
 
         boolean overlapConflict = discounts.stream()
+                .filter(d -> d.getStatus() == DiscountStatus.SCHEDULED || d.getStatus() == DiscountStatus.ACTIVE)
+                .anyMatch(d -> startAt.isBefore(d.getEndAt()) && endAt.isAfter(d.getStartAt()));
+        if (overlapConflict) {
+            throw new BusinessException(ErrorCode.ACTIVE_DISCOUNT_CONFLICT);
+        }
+    }
+
+    private void validateDiscountConflictsForUpdate(
+            Product product,
+            Long productDiscountId,
+            ProductDiscountUpdateRequest request,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        List<ProductDiscount> discounts = productDiscountRepository.findByProduct(product);
+
+        boolean existsSame = discounts.stream().anyMatch(d ->
+                !d.getId().equals(productDiscountId)
+                        && d.getTitle().equals(request.getTitle())
+                        && d.getDiscountType() == request.getDiscountType()
+                        && d.getDiscountValue().compareTo(request.getDiscountValue()) == 0
+                        && d.getStartAt().isEqual(startAt)
+                        && d.getEndAt().isEqual(endAt)
+        );
+        if (existsSame) {
+            throw new BusinessException(ErrorCode.DISCOUNT_ALREADY_EXISTS);
+        }
+
+        boolean activeConflict = discounts.stream().anyMatch(d ->
+                !d.getId().equals(productDiscountId)
+                        && d.isActiveNow(now)
+        );
+        if (activeConflict) {
+            throw new BusinessException(ErrorCode.ACTIVE_DISCOUNT_CONFLICT);
+        }
+
+        boolean overlapConflict = discounts.stream()
+                .filter(d -> !d.getId().equals(productDiscountId))
                 .filter(d -> d.getStatus() == DiscountStatus.SCHEDULED || d.getStatus() == DiscountStatus.ACTIVE)
                 .anyMatch(d -> startAt.isBefore(d.getEndAt()) && endAt.isAfter(d.getStartAt()));
         if (overlapConflict) {
