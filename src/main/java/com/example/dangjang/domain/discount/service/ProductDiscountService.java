@@ -125,7 +125,7 @@ public class ProductDiscountService {
             throw new BusinessException(ErrorCode.INVALID_DISCOUNT_VALUE);
         }
 
-        if (type == DiscountType.PERCENT) {
+        if (type.isPercent()) {
             if (value.compareTo(new BigDecimal("100")) > 0) {
                 throw new BusinessException(ErrorCode.INVALID_DISCOUNT_VALUE);
             }
@@ -138,7 +138,7 @@ public class ProductDiscountService {
             return price;
         }
 
-        if (type == DiscountType.AMOUNT) {
+        if (type.isAmount()) {
             BigDecimal price = originalPrice.subtract(value).setScale(2, RoundingMode.HALF_UP);
             if (price.compareTo(BigDecimal.ZERO) < 0) {
                 throw new BusinessException(ErrorCode.INVALID_DISCOUNT_VALUE);
@@ -160,7 +160,7 @@ public class ProductDiscountService {
 
         boolean existsSame = discounts.stream().anyMatch(d ->
                 d.getTitle().equals(request.getTitle())
-                        && d.getDiscountType() == request.getDiscountType()
+                        && d.getDiscountType().normalize() == request.getDiscountType().normalize()
                         && d.getDiscountValue().compareTo(request.getDiscountValue()) == 0
                         && d.getStartAt().isEqual(startAt)
                         && d.getEndAt().isEqual(endAt)
@@ -195,7 +195,7 @@ public class ProductDiscountService {
         boolean existsSame = discounts.stream().anyMatch(d ->
                 !d.getId().equals(productDiscountId)
                         && d.getTitle().equals(request.getTitle())
-                        && d.getDiscountType() == request.getDiscountType()
+                        && d.getDiscountType().normalize() == request.getDiscountType().normalize()
                         && d.getDiscountValue().compareTo(request.getDiscountValue()) == 0
                         && d.getStartAt().isEqual(startAt)
                         && d.getEndAt().isEqual(endAt)
