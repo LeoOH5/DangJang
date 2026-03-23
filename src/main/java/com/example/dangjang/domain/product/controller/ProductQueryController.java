@@ -1,0 +1,35 @@
+package com.example.dangjang.domain.product.controller;
+
+import com.example.dangjang.common.response.ApiResponse;
+import com.example.dangjang.domain.product.dto.ProductSearchResponse;
+import com.example.dangjang.domain.product.service.ProductQueryService;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@Validated
+@RestController
+@RequestMapping("/api/v1/products")
+@RequiredArgsConstructor
+public class ProductQueryController {
+
+    private final ProductQueryService productQueryService;
+
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ProductSearchResponse> searchProducts(
+            @RequestParam @NotBlank(message = "keyword는 필수입니다.") String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        ProductSearchResponse response = productQueryService.searchProducts(keyword, page, size);
+        return ApiResponse.ok("상품 검색 성공", response);
+    }
+}
+
