@@ -35,8 +35,9 @@ public enum ErrorCode {
     DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "DISCOUNT_001", "존재하지 않는 할인 정보입니다."),
     INVALID_DISCOUNT_PERIOD(HttpStatus.BAD_REQUEST, "DISCOUNT_002", "할인 시작 시간은 종료 시간보다 빨라야 합니다."),
     INVALID_DISCOUNT_TIME(HttpStatus.BAD_REQUEST, "INVALID_DISCOUNT_TIME", "할인 시작 시간과 종료 시간이 올바르지 않습니다."),
-    INVALID_DISCOUNT_VALUE(HttpStatus.BAD_REQUEST, "DISCOUNT_003", "유효하지 않은 할인 값입니다."),
-    INVALID_REMAINING_QUANTITY(HttpStatus.BAD_REQUEST, "DISCOUNT_004", "남은 할인 수량은 0 이상이어야 합니다."),
+    INVALID_DISCOUNT_VALUE(HttpStatus.BAD_REQUEST, "INVALID_DISCOUNT_VALUE", "할인 값이 올바르지 않습니다."),
+    INVALID_REMAINING_QUANTITY(HttpStatus.BAD_REQUEST, "INVALID_REMAINING_QUANTITY", "남은 할인 수량은 0 이상이어야 합니다."),
+    PRODUCT_DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_DISCOUNT_NOT_FOUND", "존재하지 않는 상품 할인 정보입니다."),
     DISCOUNT_ALREADY_EXISTS(HttpStatus.CONFLICT, "DISCOUNT_ALREADY_EXISTS", "이미 등록된 할인 정보입니다."),
     ACTIVE_DISCOUNT_CONFLICT(HttpStatus.CONFLICT, "ACTIVE_DISCOUNT_CONFLICT", "이미 진행 중인 할인 정보가 존재합니다.");
 
