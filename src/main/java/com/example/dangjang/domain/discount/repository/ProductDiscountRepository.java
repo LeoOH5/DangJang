@@ -21,13 +21,18 @@ public interface ProductDiscountRepository extends JpaRepository<ProductDiscount
     @Query("""
             select pd
             from ProductDiscount pd
-            where pd.startAt <= :now
-              and pd.endAt >= :now
+            where (
+                    (pd.status = :activeStatus and pd.startAt <= :now and pd.endAt >= :now)
+                    or
+                    (pd.status = :scheduledStatus and pd.startAt > :now)
+                  )
               and pd.remainingQuantity > 0
             order by pd.id desc
            """)
     Page<ProductDiscount> findActiveDiscountProducts(
             @Param("now") LocalDateTime now,
+            @Param("activeStatus") DiscountStatus activeStatus,
+            @Param("scheduledStatus") DiscountStatus scheduledStatus,
             Pageable pageable
     );
 }
