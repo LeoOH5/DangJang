@@ -11,13 +11,16 @@ import com.example.dangjang.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
+import java.security.MessageDigest;
 import java.util.regex.Pattern;
 
 @Service
@@ -30,11 +33,13 @@ public class AuthService {
             Pattern.compile("^\\d{2,3}-\\d{3,4}-\\d{4}$");
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$");
+    private static final Pattern EXP_PATTERN = Pattern.compile("\"exp\"\\s*:\\s*(\\d+)");
 
     @Value("${admin.secret-key}")
     private String jwtSecretKey;
 
     private final UserRepository userRepository;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
@@ -91,6 +96,25 @@ public class AuthService {
         );
     }
 
+    @Transactional
+    public void logout(String authorization) {
+        String token = extractBearerToken(authorization);
+        long exp = validateAccessTokenAndGetExp(token);
+        String blacklistKey = buildBlacklistKey(token);
+
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(blacklistKey))) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+
+        long now = Instant.now().getEpochSecond();
+        long ttlSeconds = exp - now;
+        if (ttlSeconds <= 0) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+
+        stringRedisTemplate.opsForValue().set(blacklistKey, "1", ttlSeconds, TimeUnit.SECONDS);
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -139,6 +163,88 @@ public class AuthService {
             return "";
         }
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String extractBearerToken(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+
+        String prefix = "Bearer ";
+        if (!authorization.startsWith(prefix)) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+
+        String token = authorization.substring(prefix.length()).trim();
+        if (token.isBlank()) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+
+        return token;
+    }
+
+    private long validateAccessTokenAndGetExp(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+            }
+
+            String headerPart = parts[0];
+            String payloadPart = parts[1];
+            String signaturePart = parts[2];
+
+            String signingInput = headerPart + "." + payloadPart;
+            byte[] signatureBytes =
+                    hmacSha256(signingInput.getBytes(StandardCharsets.UTF_8), jwtSecretKey);
+            String computedSignaturePart = base64UrlEncode(signatureBytes);
+            if (!computedSignaturePart.equals(signaturePart)) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+            }
+
+            String payloadJson = new String(
+                    Base64.getUrlDecoder().decode(payloadPart),
+                    StandardCharsets.UTF_8
+            );
+
+            var matcher = EXP_PATTERN.matcher(payloadJson);
+            if (!matcher.find()) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+            }
+
+            long exp = Long.parseLong(matcher.group(1));
+            long now = Instant.now().getEpochSecond();
+            if (exp <= now) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+            }
+
+            return exp;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+    }
+
+    private String buildBlacklistKey(String token) {
+        return "auth:blacklist:" + sha256Hex(token);
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
+            char[] hexChars = new char[digest.length * 2];
+            char[] hexArray = "0123456789abcdef".toCharArray();
+            for (int i = 0; i < digest.length; i++) {
+                int v = digest[i] & 0xFF;
+                hexChars[i * 2] = hexArray[v >>> 4];
+                hexChars[i * 2 + 1] = hexArray[v & 0x0F];
+            }
+            return new String(hexChars);
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 failed", e);
+        }
     }
 }
 

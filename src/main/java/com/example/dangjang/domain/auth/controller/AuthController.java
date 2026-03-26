@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,6 +34,15 @@ public class AuthController {
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ApiResponse.ok("로그인에 성공했습니다.", response);
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        authService.logout(authorization);
+        return ApiResponse.ok("로그아웃에 성공했습니다.");
     }
 }
 
