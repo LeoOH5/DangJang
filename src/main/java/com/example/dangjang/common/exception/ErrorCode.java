@@ -18,6 +18,8 @@ public enum ErrorCode {
     REQUIRED_FIELD_MISSING(HttpStatus.BAD_REQUEST, "REQUIRED_FIELD_MISSING", "필수 입력 값이 누락되었습니다."),
     AUTH_INVALID_INPUT(HttpStatus.BAD_REQUEST, "AUTH_INVALID_INPUT", "입력값이 올바르지 않습니다."),
     AUTH_EMAIL_DUPLICATED(HttpStatus.CONFLICT, "AUTH_EMAIL_DUPLICATED", "이미 사용 중인 이메일입니다."),
+    AUTH_PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_PASSWORD_MISMATCH", "비밀번호가 일치하지 않습니다."),
+    AUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_USER_NOT_FOUND", "사용자를 찾을 수 없습니다."),
 
     // Market
     MARKET_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_001", "존재하지 않는 시장입니다."),
