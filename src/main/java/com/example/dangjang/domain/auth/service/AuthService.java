@@ -98,8 +98,9 @@ public class AuthService {
 
     @Transactional
     public void logout(String authorization) {
-        String token = extractBearerToken(authorization);
-        long exp = validateAccessTokenAndGetExp(token);
+        AuthTokenInfo tokenInfo = parseAndValidateAccessToken(authorization);
+        String token = tokenInfo.token();
+        long exp = tokenInfo.exp();
         String blacklistKey = buildBlacklistKey(token);
 
         if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(blacklistKey))) {
@@ -113,6 +114,16 @@ public class AuthService {
         }
 
         stringRedisTemplate.opsForValue().set(blacklistKey, "1", ttlSeconds, TimeUnit.SECONDS);
+    }
+
+    @Transactional(readOnly = true)
+    public Long getAuthenticatedUserId(String authorization) {
+        AuthTokenInfo tokenInfo = parseAndValidateAccessToken(authorization);
+        String blacklistKey = buildBlacklistKey(tokenInfo.token());
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(blacklistKey))) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+        return tokenInfo.userId();
     }
 
     private boolean isBlank(String value) {
@@ -167,7 +178,7 @@ public class AuthService {
 
     private String extractBearerToken(String authorization) {
         if (authorization == null || authorization.isBlank()) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+            throw new BusinessException(ErrorCode.AUTH_UNAUTHORIZED);
         }
 
         String prefix = "Bearer ";
@@ -183,7 +194,8 @@ public class AuthService {
         return token;
     }
 
-    private long validateAccessTokenAndGetExp(String token) {
+    private AuthTokenInfo parseAndValidateAccessToken(String authorization) {
+        String token = extractBearerToken(authorization);
         try {
             String[] parts = token.split("\\.");
             if (parts.length != 3) {
@@ -207,6 +219,7 @@ public class AuthService {
                     StandardCharsets.UTF_8
             );
 
+            long userId = extractLongClaim(payloadJson, "sub");
             var matcher = EXP_PATTERN.matcher(payloadJson);
             if (!matcher.find()) {
                 throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
@@ -215,15 +228,24 @@ public class AuthService {
             long exp = Long.parseLong(matcher.group(1));
             long now = Instant.now().getEpochSecond();
             if (exp <= now) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+                throw new BusinessException(ErrorCode.AUTH_EXPIRED_TOKEN);
             }
 
-            return exp;
+            return new AuthTokenInfo(token, userId, exp);
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
         }
+    }
+
+    private long extractLongClaim(String payloadJson, String claim) {
+        Pattern pattern = Pattern.compile("\"" + claim + "\"\\s*:\\s*(\\d+)");
+        var matcher = pattern.matcher(payloadJson);
+        if (!matcher.find()) {
+            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
+        }
+        return Long.parseLong(matcher.group(1));
     }
 
     private String buildBlacklistKey(String token) {
@@ -245,6 +267,9 @@ public class AuthService {
         } catch (Exception e) {
             throw new IllegalStateException("SHA-256 failed", e);
         }
+    }
+
+    private record AuthTokenInfo(String token, Long userId, Long exp) {
     }
 }
 
