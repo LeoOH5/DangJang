@@ -15,6 +15,9 @@ public enum ErrorCode {
     MISSING_ADMIN_KEY(HttpStatus.UNAUTHORIZED, "AUTH_001", "X-Admin-Key 헤더가 필요합니다."),
     INVALID_ADMIN_KEY(HttpStatus.FORBIDDEN, "AUTH_002", "유효하지 않은 관리자 키입니다."),
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "AUTH_003", "관리자 권한이 필요한 요청입니다."),
+    REQUIRED_FIELD_MISSING(HttpStatus.BAD_REQUEST, "REQUIRED_FIELD_MISSING", "필수 입력 값이 누락되었습니다."),
+    AUTH_INVALID_INPUT(HttpStatus.BAD_REQUEST, "AUTH_INVALID_INPUT", "입력값이 올바르지 않습니다."),
+    AUTH_EMAIL_DUPLICATED(HttpStatus.CONFLICT, "AUTH_EMAIL_DUPLICATED", "이미 사용 중인 이메일입니다."),
 
     // Market
     MARKET_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_001", "존재하지 않는 시장입니다."),
