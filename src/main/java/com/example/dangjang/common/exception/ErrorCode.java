@@ -42,6 +42,7 @@ public enum ErrorCode {
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT_002", "비활성화된 상품입니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT_003", "재고 수량은 0 이상이어야 합니다."),
     PRODUCT_ALREADY_EXISTS(HttpStatus.CONFLICT, "PRODUCT_ALREADY_EXISTS", "이미 등록된 상품입니다."),
+    RESERVATION_QUANTITY_EXCEEDED(HttpStatus.BAD_REQUEST, "RESERVATION_QUANTITY_EXCEEDED", "예약 가능 수량을 초과했습니다."),
 
     // Discount
     DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "DISCOUNT_001", "존재하지 않는 할인 정보입니다."),
@@ -50,6 +51,7 @@ public enum ErrorCode {
     INVALID_DISCOUNT_VALUE(HttpStatus.BAD_REQUEST, "INVALID_DISCOUNT_VALUE", "할인 값이 올바르지 않습니다."),
     INVALID_REMAINING_QUANTITY(HttpStatus.BAD_REQUEST, "INVALID_REMAINING_QUANTITY", "남은 할인 수량은 0 이상이어야 합니다."),
     PRODUCT_DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_DISCOUNT_NOT_FOUND", "존재하지 않는 상품 할인 정보입니다."),
+    DISCOUNT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DISCOUNT_NOT_AVAILABLE", "예약 가능한 할인 상품이 아닙니다."),
     DISCOUNT_ALREADY_EXISTS(HttpStatus.CONFLICT, "DISCOUNT_ALREADY_EXISTS", "이미 등록된 할인 정보입니다."),
     ACTIVE_DISCOUNT_CONFLICT(HttpStatus.CONFLICT, "ACTIVE_DISCOUNT_CONFLICT", "이미 진행 중인 할인 정보가 존재합니다.");
 
