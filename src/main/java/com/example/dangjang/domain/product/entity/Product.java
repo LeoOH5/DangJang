@@ -83,6 +83,13 @@ public class Product extends BaseTimeEntity {
         this.status = status;
     }
 
+    public void decreaseStock(int quantity) {
+        if (quantity <= 0 || this.stockQuantity < quantity) {
+            throw new BusinessException(ErrorCode.RESERVATION_QUANTITY_EXCEEDED);
+        }
+        this.stockQuantity -= quantity;
+    }
+
     private void validateStockQuantity(Integer stockQuantity) {
         if (stockQuantity == null || stockQuantity < 0) {
             throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
