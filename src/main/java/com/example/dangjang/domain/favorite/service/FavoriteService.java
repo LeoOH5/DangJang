@@ -4,6 +4,7 @@ import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.favorite.dto.FavoriteCreateResponse;
+import com.example.dangjang.domain.favorite.dto.FavoriteDeleteResponse;
 import com.example.dangjang.domain.favorite.entity.Favorite;
 import com.example.dangjang.domain.favorite.repository.FavoriteRepository;
 import com.example.dangjang.domain.store.entity.Store;
@@ -45,5 +46,23 @@ public class FavoriteService {
         );
 
         return new FavoriteCreateResponse(favorite.getId(), store.getId());
+    }
+
+    @Transactional
+    public FavoriteDeleteResponse deleteFavorite(String authorization, Long storeId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        Favorite favorite = favoriteRepository.findByUserAndStore(user, store)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FAVORITE_NOT_FOUND));
+
+        favoriteRepository.delete(favorite);
+
+        return new FavoriteDeleteResponse(store.getId());
     }
 }
