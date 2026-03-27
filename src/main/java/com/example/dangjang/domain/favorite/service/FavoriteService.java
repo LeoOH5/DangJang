@@ -5,6 +5,8 @@ import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.favorite.dto.FavoriteCreateResponse;
 import com.example.dangjang.domain.favorite.dto.FavoriteDeleteResponse;
+import com.example.dangjang.domain.favorite.dto.FavoriteListResponse;
+import com.example.dangjang.domain.favorite.dto.FavoriteSummaryResponse;
 import com.example.dangjang.domain.favorite.entity.Favorite;
 import com.example.dangjang.domain.favorite.repository.FavoriteRepository;
 import com.example.dangjang.domain.store.entity.Store;
@@ -12,6 +14,7 @@ import com.example.dangjang.domain.store.repository.StoreRepository;
 import com.example.dangjang.domain.user.entity.User;
 import com.example.dangjang.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,5 +67,39 @@ public class FavoriteService {
         favoriteRepository.delete(favorite);
 
         return new FavoriteDeleteResponse(store.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public FavoriteListResponse getFavorites(String authorization, int page, int size) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        PageRequest pageable = PageRequest.of(page, size);
+        var favoritePage = favoriteRepository.findByUser(user, pageable);
+
+        var content = favoritePage.getContent().stream()
+                .map(this::toSummary)
+                .toList();
+
+        return new FavoriteListResponse(
+                content,
+                favoritePage.getNumber(),
+                favoritePage.getSize(),
+                favoritePage.getTotalElements(),
+                favoritePage.getTotalPages()
+        );
+    }
+
+    private FavoriteSummaryResponse toSummary(Favorite favorite) {
+        Store store = favorite.getStore();
+        return new FavoriteSummaryResponse(
+                favorite.getId(),
+                store.getId(),
+                store.getName(),
+                store.getMarket().getName(),
+                true
+        );
     }
 }
