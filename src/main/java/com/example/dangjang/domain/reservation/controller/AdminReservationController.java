@@ -2,10 +2,16 @@ package com.example.dangjang.domain.reservation.controller;
 
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.reservation.dto.AdminReservationListResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationConfirmResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationRejectRequest;
+import com.example.dangjang.domain.reservation.dto.ReservationRejectResponse;
 import com.example.dangjang.domain.reservation.service.AdminReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,5 +42,33 @@ public class AdminReservationController {
                 size
         );
         return ApiResponse.ok("예약 목록 조회에 성공했습니다.", response);
+    }
+
+    @PatchMapping("/{reservationId}/confirm")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ReservationConfirmResponse> confirmReservation(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long reservationId
+    ) {
+        ReservationConfirmResponse response = adminReservationService.confirmReservation(
+                authorization,
+                reservationId
+        );
+        return ApiResponse.ok("예약이 승인되었습니다.", response);
+    }
+
+    @PatchMapping("/{reservationId}/reject")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ReservationRejectResponse> rejectReservation(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long reservationId,
+            @RequestBody ReservationRejectRequest request
+    ) {
+        ReservationRejectResponse response = adminReservationService.rejectReservation(
+                authorization,
+                reservationId,
+                request
+        );
+        return ApiResponse.ok("예약이 거절되었습니다.", response);
     }
 }

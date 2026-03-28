@@ -5,7 +5,11 @@ import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.reservation.dto.AdminReservationListResponse;
 import com.example.dangjang.domain.reservation.dto.AdminReservationSummaryResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationConfirmResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationRejectRequest;
+import com.example.dangjang.domain.reservation.dto.ReservationRejectResponse;
 import com.example.dangjang.domain.reservation.entity.Reservation;
+import com.example.dangjang.domain.reservation.entity.ReservationItem;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.repository.StoreRepository;
@@ -89,6 +93,66 @@ public class AdminReservationService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    @Transactional
+    public ReservationConfirmResponse confirmReservation(String authorization, Long reservationId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Reservation reservation = reservationRepository.findWithStoreAndOwnerById(reservationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+        Store store = reservation.getStore();
+        if (store.getOwner() == null || !store.getOwner().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.STORE_RESERVATION_ACCESS_DENIED);
+        }
+
+        if (!"REQUESTED".equals(reservation.getStatus())) {
+            throw new BusinessException(ErrorCode.RESERVATION_APPROVE_INVALID_STATUS);
+        }
+
+        reservation.changeStatus("CONFIRMED");
+        return new ReservationConfirmResponse(reservation.getId(), "CONFIRMED");
+    }
+
+    @Transactional
+    public ReservationRejectResponse rejectReservation(
+            String authorization,
+            Long reservationId,
+            ReservationRejectRequest request
+    ) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        String reason = request != null && request.getReason() != null ? request.getReason().trim() : "";
+        if (reason.isEmpty()) {
+            throw new BusinessException(ErrorCode.RESERVATION_REJECT_REASON_REQUIRED);
+        }
+
+        Reservation reservation = reservationRepository.findDetailById(reservationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+        Store store = reservation.getStore();
+        if (store.getOwner() == null || !store.getOwner().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.STORE_RESERVATION_ACCESS_DENIED);
+        }
+
+        if (!"REQUESTED".equals(reservation.getStatus())) {
+            throw new BusinessException(ErrorCode.RESERVATION_REJECT_INVALID_STATUS);
+        }
+
+        for (ReservationItem item : reservation.getItems()) {
+            item.getProduct().increaseStock(item.getQuantity());
+            if (item.getProductDiscount() != null) {
+                item.getProductDiscount().increaseRemainingQuantity(item.getQuantity());
+            }
+        }
+
+        reservation.rejectWithReason(reason);
+        return new ReservationRejectResponse(reservation.getId(), "REJECTED");
     }
 
     private AdminReservationSummaryResponse toAdminSummary(Reservation reservation) {
