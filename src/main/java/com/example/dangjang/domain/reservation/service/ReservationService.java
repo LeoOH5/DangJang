@@ -9,6 +9,8 @@ import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.repository.ProductRepository;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationListResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationSummaryResponse;
 import com.example.dangjang.domain.reservation.entity.Reservation;
 import com.example.dangjang.domain.reservation.entity.ReservationItem;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
@@ -17,16 +19,31 @@ import com.example.dangjang.domain.store.repository.StoreRepository;
 import com.example.dangjang.domain.user.entity.User;
 import com.example.dangjang.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
+
+    private static final DateTimeFormatter PICKUP_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final Set<String> RESERVATION_STATUSES = Set.of(
+            "REQUESTED",
+            "CONFIRMED",
+            "CANCELLED",
+            "COMPLETED",
+            "REJECTED",
+            "READY_FOR_PICKUP"
+    );
 
     private final AuthService authService;
     private final UserRepository userRepository;
@@ -111,6 +128,53 @@ public class ReservationService {
                 saved.getPickupDate(),
                 saved.getPickupTime(),
                 responseItems
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ReservationListResponse getMyReservations(String authorization, String status, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        String statusFilter = status == null ? "" : status.trim();
+        if (!statusFilter.isEmpty() && !RESERVATION_STATUSES.contains(statusFilter)) {
+            throw new BusinessException(ErrorCode.RESERVATION_INVALID_STATUS);
+        }
+
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        Page<Reservation> result = statusFilter.isEmpty()
+                ? reservationRepository.findByUserOrderByIdDesc(user, pageable)
+                : reservationRepository.findByUserAndStatusOrderByIdDesc(user, statusFilter, pageable);
+
+        List<ReservationSummaryResponse> content = result.getContent().stream()
+                .map(this::toSummary)
+                .toList();
+
+        return new ReservationListResponse(
+                content,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
+
+    private ReservationSummaryResponse toSummary(Reservation reservation) {
+        int totalItemCount = reservation.getItems().stream()
+                .mapToInt(ReservationItem::getQuantity)
+                .sum();
+        return new ReservationSummaryResponse(
+                reservation.getId(),
+                reservation.getStore().getId(),
+                reservation.getStore().getName(),
+                reservation.getStatus(),
+                reservation.getPickupDate().toString(),
+                reservation.getPickupTime().format(PICKUP_TIME_FORMAT),
+                totalItemCount
         );
     }
 
