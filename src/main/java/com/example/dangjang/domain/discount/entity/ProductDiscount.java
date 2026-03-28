@@ -108,6 +108,13 @@ public class ProductDiscount extends BaseTimeEntity {
         this.remainingQuantity -= quantity;
     }
 
+    public void increaseRemainingQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REMAINING_QUANTITY);
+        }
+        this.remainingQuantity += quantity;
+    }
+
     private void validate(LocalDateTime startAt, LocalDateTime endAt,
                           BigDecimal discountValue, BigDecimal discountPrice,
                           Integer remainingQuantity) {
