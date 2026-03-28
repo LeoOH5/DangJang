@@ -3,12 +3,14 @@ package com.example.dangjang.domain.reservation.controller;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationDetailResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationListResponse;
 import com.example.dangjang.domain.reservation.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -44,5 +46,15 @@ public class ReservationController {
     ) {
         ReservationListResponse response = reservationService.getMyReservations(authorization, status, page, size);
         return ApiResponse.ok("예약 목록 조회에 성공했습니다.", response);
+    }
+
+    @GetMapping("/{reservationId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ReservationDetailResponse> getReservationDetail(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long reservationId
+    ) {
+        ReservationDetailResponse response = reservationService.getReservationDetail(authorization, reservationId);
+        return ApiResponse.ok("예약 상세 조회에 성공했습니다.", response);
     }
 }

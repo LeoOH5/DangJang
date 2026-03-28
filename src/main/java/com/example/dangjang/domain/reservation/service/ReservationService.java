@@ -9,6 +9,7 @@ import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.repository.ProductRepository;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationDetailResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationListResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationSummaryResponse;
 import com.example.dangjang.domain.reservation.entity.Reservation;
@@ -160,6 +161,48 @@ public class ReservationService {
                 result.getSize(),
                 result.getTotalElements(),
                 result.getTotalPages()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ReservationDetailResponse getReservationDetail(String authorization, Long reservationId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Reservation reservation = reservationRepository.findDetailById(reservationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        List<ReservationDetailResponse.ReservationDetailItemResponse> items = reservation.getItems().stream()
+                .map(this::toDetailItem)
+                .toList();
+
+        String note = reservation.getRequestNote() == null ? "" : reservation.getRequestNote();
+
+        return new ReservationDetailResponse(
+                reservation.getId(),
+                reservation.getStatus(),
+                reservation.getStore().getId(),
+                reservation.getStore().getName(),
+                reservation.getPickupDate().toString(),
+                reservation.getPickupTime().format(PICKUP_TIME_FORMAT),
+                note,
+                items
+        );
+    }
+
+    private ReservationDetailResponse.ReservationDetailItemResponse toDetailItem(ReservationItem item) {
+        return new ReservationDetailResponse.ReservationDetailItemResponse(
+                item.getId(),
+                item.getProduct().getId(),
+                item.getProduct().getName(),
+                item.getQuantity(),
+                item.getProduct().getOriginalPrice().intValue(),
+                item.getDiscountPrice().intValue()
         );
     }
 
