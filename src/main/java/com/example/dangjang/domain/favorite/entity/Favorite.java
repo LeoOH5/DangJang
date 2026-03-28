@@ -4,6 +4,7 @@ import com.example.dangjang.common.entity.BaseTimeEntity;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.user.entity.User;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,5 +32,11 @@ public class Favorite extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @Builder
+    public Favorite(User user, Store store) {
+        this.user = user;
+        this.store = store;
+    }
 }
 

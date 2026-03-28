@@ -2,6 +2,7 @@ package com.example.dangjang.domain.store.entity;
 
 import com.example.dangjang.common.entity.BaseTimeEntity;
 import com.example.dangjang.domain.market.entity.Market;
+import com.example.dangjang.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -47,10 +48,14 @@ public class Store extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private StoreStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
     @Builder
     public Store(Market market, String name, String description, String phone,
                  String address, LocalTime openTime, LocalTime closeTime,
-                 StoreStatus status) {
+                 StoreStatus status, User owner) {
         this.market = market;
         this.name = name;
         this.description = description;
@@ -59,6 +64,7 @@ public class Store extends BaseTimeEntity {
         this.openTime = openTime;
         this.closeTime = closeTime;
         this.status = status;
+        this.owner = owner;
     }
 
     public void update(String name, String description, String phone,
