@@ -1,6 +1,7 @@
 package com.example.dangjang.domain.reservation.controller;
 
 import com.example.dangjang.common.response.ApiResponse;
+import com.example.dangjang.domain.reservation.dto.ReservationCancelResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationDetailResponse;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,5 +58,15 @@ public class ReservationController {
     ) {
         ReservationDetailResponse response = reservationService.getReservationDetail(authorization, reservationId);
         return ApiResponse.ok("예약 상세 조회에 성공했습니다.", response);
+    }
+
+    @PatchMapping("/{reservationId}/cancel")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<ReservationCancelResponse> cancelReservation(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long reservationId
+    ) {
+        ReservationCancelResponse response = reservationService.cancelReservation(authorization, reservationId);
+        return ApiResponse.ok("예약이 취소되었습니다.", response);
     }
 }

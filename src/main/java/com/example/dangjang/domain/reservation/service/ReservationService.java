@@ -7,6 +7,7 @@ import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
 import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.repository.ProductRepository;
+import com.example.dangjang.domain.reservation.dto.ReservationCancelResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationCreateResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationDetailResponse;
@@ -40,11 +41,14 @@ public class ReservationService {
     private static final Set<String> RESERVATION_STATUSES = Set.of(
             "REQUESTED",
             "CONFIRMED",
+            "CANCELED",
             "CANCELLED",
             "COMPLETED",
             "REJECTED",
             "READY_FOR_PICKUP"
     );
+
+    private static final Set<String> CANCELLABLE_RESERVATION_STATUSES = Set.of("REQUESTED", "CONFIRMED");
 
     private final AuthService authService;
     private final UserRepository userRepository;
@@ -193,6 +197,39 @@ public class ReservationService {
                 note,
                 items
         );
+    }
+
+    @Transactional
+    public ReservationCancelResponse cancelReservation(String authorization, Long reservationId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Reservation reservation = reservationRepository.findDetailById(reservationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        String current = reservation.getStatus();
+        if ("CANCELED".equals(current) || "CANCELLED".equals(current)) {
+            throw new BusinessException(ErrorCode.RESERVATION_ALREADY_CANCELED);
+        }
+        if (!CANCELLABLE_RESERVATION_STATUSES.contains(current)) {
+            throw new BusinessException(ErrorCode.RESERVATION_CANNOT_CANCEL);
+        }
+
+        for (ReservationItem item : reservation.getItems()) {
+            item.getProduct().increaseStock(item.getQuantity());
+            if (item.getProductDiscount() != null) {
+                item.getProductDiscount().increaseRemainingQuantity(item.getQuantity());
+            }
+        }
+
+        reservation.changeStatus("CANCELED");
+
+        return new ReservationCancelResponse(reservation.getId(), "CANCELED");
     }
 
     private ReservationDetailResponse.ReservationDetailItemResponse toDetailItem(ReservationItem item) {
