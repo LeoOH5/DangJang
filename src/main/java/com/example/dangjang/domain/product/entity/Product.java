@@ -90,6 +90,13 @@ public class Product extends BaseTimeEntity {
         this.stockQuantity -= quantity;
     }
 
+    public void increaseStock(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
+        }
+        this.stockQuantity += quantity;
+    }
+
     private void validateStockQuantity(Integer stockQuantity) {
         if (stockQuantity == null || stockQuantity < 0) {
             throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
