@@ -34,5 +34,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     @EntityGraph(attributePaths = {"user", "store"})
     Page<Reservation> findByStore_IdAndStatusOrderByIdDesc(Long storeId, String status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"store", "store.owner"})
+    @Query("select r from Reservation r where r.id = :id")
+    Optional<Reservation> findWithStoreAndOwnerById(@Param("id") Long id);
 }
 
