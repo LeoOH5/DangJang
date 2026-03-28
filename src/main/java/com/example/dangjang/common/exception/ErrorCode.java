@@ -56,7 +56,9 @@ public enum ErrorCode {
     ACTIVE_DISCOUNT_CONFLICT(HttpStatus.CONFLICT, "ACTIVE_DISCOUNT_CONFLICT", "이미 진행 중인 할인 정보가 존재합니다."),
 
     // Reservation
-    RESERVATION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "INVALID_INPUT_VALUE", "잘못된 예약 상태 값입니다.");
+    RESERVATION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "INVALID_INPUT_VALUE", "잘못된 예약 상태 값입니다."),
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION_NOT_FOUND", "존재하지 않는 예약입니다."),
+    ACCESS_DENIED(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "해당 예약에 접근할 권한이 없습니다.");
 
     private final HttpStatus status;
     private final String code;
