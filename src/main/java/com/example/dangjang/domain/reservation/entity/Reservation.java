@@ -63,5 +63,9 @@ public class Reservation extends BaseTimeEntity {
     public void addItem(ReservationItem item) {
         this.items.add(item);
     }
+
+    public void changeStatus(String status) {
+        this.status = status;
+    }
 }
 
