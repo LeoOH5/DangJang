@@ -4,6 +4,7 @@ import com.example.dangjang.common.entity.BaseTimeEntity;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.user.entity.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import lombok.Builder;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -45,6 +46,7 @@ public class Reservation extends BaseTimeEntity {
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
+    @BatchSize(size = 32)
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReservationItem> items = new ArrayList<>();
 
