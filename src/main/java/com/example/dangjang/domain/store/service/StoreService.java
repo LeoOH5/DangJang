@@ -65,6 +65,7 @@ public class StoreService {
                 .openTime(openTime)
                 .closeTime(closeTime)
                 .status(status)
+                .owner(null)
                 .build();
 
         Store saved = storeRepository.save(store);
