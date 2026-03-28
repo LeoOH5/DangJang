@@ -43,6 +43,9 @@ public class Reservation extends BaseTimeEntity {
     @Column(name = "request_note", length = 500)
     private String requestNote;
 
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
+
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
@@ -66,6 +69,11 @@ public class Reservation extends BaseTimeEntity {
 
     public void changeStatus(String status) {
         this.status = status;
+    }
+
+    public void rejectWithReason(String reason) {
+        this.status = "REJECTED";
+        this.rejectReason = reason;
     }
 }
 
