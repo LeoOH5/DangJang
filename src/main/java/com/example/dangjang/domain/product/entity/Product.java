@@ -50,6 +50,7 @@ public class Product extends BaseTimeEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
+
     @Builder
     public Product(Store store, String name, String description,
                    BigDecimal originalPrice, Integer stockQuantity,

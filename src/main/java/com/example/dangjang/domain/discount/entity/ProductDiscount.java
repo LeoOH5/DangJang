@@ -58,6 +58,7 @@ public class ProductDiscount extends BaseTimeEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
+
     @Builder
     public ProductDiscount(Product product, String title, DiscountType discountType,
                            BigDecimal discountValue, BigDecimal discountPrice,

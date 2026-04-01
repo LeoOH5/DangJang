@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
@@ -57,7 +58,7 @@ public class ReservationService {
     private final ProductDiscountRepository productDiscountRepository;
     private final ReservationRepository reservationRepository;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationCreateResponse createReservation(String authorization, ReservationCreateRequest request) {
         validateRequiredFields(request);
 
@@ -199,7 +200,7 @@ public class ReservationService {
         );
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationCancelResponse cancelReservation(String authorization, Long reservationId) {
         Long userId = authService.getAuthenticatedUserId(authorization);
         userRepository.findById(userId)

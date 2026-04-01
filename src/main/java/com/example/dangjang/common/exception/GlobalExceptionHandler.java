@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -97,6 +98,15 @@ public class GlobalExceptionHandler {
                 .errors(null)
                 .build();
         return ResponseEntity.status(code.getStatus()).body(response);
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ErrorResponse> handleJpaSystemException(JpaSystemException e) {
+        String message = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        if (message != null && message.contains("Record has changed since last read")) {
+            return handleReservationConcurrency(e);
+        }
+        throw e;
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
