@@ -54,6 +54,10 @@ public class ProductDiscount extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private DiscountStatus status;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Builder
     public ProductDiscount(Product product, String title, DiscountType discountType,
                            BigDecimal discountValue, BigDecimal discountPrice,
@@ -102,8 +106,11 @@ public class ProductDiscount extends BaseTimeEntity {
     }
 
     public void decreaseRemainingQuantity(int quantity) {
-        if (quantity <= 0 || this.remainingQuantity < quantity) {
-            throw new BusinessException(ErrorCode.RESERVATION_QUANTITY_EXCEEDED);
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REMAINING_QUANTITY);
+        }
+        if (this.remainingQuantity < quantity) {
+            throw new BusinessException(ErrorCode.DISCOUNT_QUANTITY_EXCEEDED);
         }
         this.remainingQuantity -= quantity;
     }

@@ -43,6 +43,8 @@ public enum ErrorCode {
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT_003", "재고 수량은 0 이상이어야 합니다."),
     PRODUCT_ALREADY_EXISTS(HttpStatus.CONFLICT, "PRODUCT_ALREADY_EXISTS", "이미 등록된 상품입니다."),
     RESERVATION_QUANTITY_EXCEEDED(HttpStatus.BAD_REQUEST, "RESERVATION_QUANTITY_EXCEEDED", "예약 가능 수량을 초과했습니다."),
+    OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "OUT_OF_STOCK", "재고가 부족합니다."),
+    DISCOUNT_QUANTITY_EXCEEDED(HttpStatus.BAD_REQUEST, "DISCOUNT_QUANTITY_EXCEEDED", "할인 잔여 수량이 부족합니다."),
 
     // Discount
     DISCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "DISCOUNT_001", "존재하지 않는 할인 정보입니다."),
@@ -65,7 +67,8 @@ public enum ErrorCode {
     RESERVATION_CANNOT_CANCEL(HttpStatus.BAD_REQUEST, "RESERVATION_CANNOT_CANCEL", "취소할 수 없는 예약 상태입니다."),
     RESERVATION_ALREADY_CANCELED(HttpStatus.CONFLICT, "RESERVATION_ALREADY_CANCELED", "이미 취소된 예약입니다."),
     STORE_OWNER_FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "매장 주인만 접근할 수 있습니다."),
-    STORE_RESERVATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "해당 매장의 예약을 조회할 권한이 없습니다.");
+    STORE_RESERVATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "해당 매장의 예약을 조회할 권한이 없습니다."),
+    CONCURRENT_RESERVATION_CONFLICT(HttpStatus.CONFLICT, "CONCURRENT_RESERVATION_CONFLICT", "동시에 예약이 처리되어 재시도가 필요합니다.");
 
     private final HttpStatus status;
     private final String code;

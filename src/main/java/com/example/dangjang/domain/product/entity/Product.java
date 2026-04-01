@@ -46,6 +46,10 @@ public class Product extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private ProductStatus status;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Builder
     public Product(Store store, String name, String description,
                    BigDecimal originalPrice, Integer stockQuantity,
@@ -84,8 +88,11 @@ public class Product extends BaseTimeEntity {
     }
 
     public void decreaseStock(int quantity) {
-        if (quantity <= 0 || this.stockQuantity < quantity) {
-            throw new BusinessException(ErrorCode.RESERVATION_QUANTITY_EXCEEDED);
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_STOCK_QUANTITY);
+        }
+        if (this.stockQuantity < quantity) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
         this.stockQuantity -= quantity;
     }

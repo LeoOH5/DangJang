@@ -10,6 +10,10 @@ import com.example.dangjang.domain.reservation.dto.ReservationRejectRequest;
 import com.example.dangjang.domain.reservation.dto.ReservationRejectResponse;
 import com.example.dangjang.domain.reservation.entity.Reservation;
 import com.example.dangjang.domain.reservation.entity.ReservationItem;
+import com.example.dangjang.domain.discount.entity.ProductDiscount;
+import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
+import com.example.dangjang.domain.product.entity.Product;
+import com.example.dangjang.domain.product.repository.ProductRepository;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.repository.StoreRepository;
@@ -44,6 +48,8 @@ public class AdminReservationService {
     private final AuthService authService;
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
+    private final ProductRepository productRepository;
+    private final ProductDiscountRepository productDiscountRepository;
     private final ReservationRepository reservationRepository;
 
     @Transactional(readOnly = true)
@@ -145,9 +151,13 @@ public class AdminReservationService {
         }
 
         for (ReservationItem item : reservation.getItems()) {
-            item.getProduct().increaseStock(item.getQuantity());
+            Product product = productRepository.findByIdForReservation(item.getProduct().getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            product.increaseStock(item.getQuantity());
             if (item.getProductDiscount() != null) {
-                item.getProductDiscount().increaseRemainingQuantity(item.getQuantity());
+                ProductDiscount discount = productDiscountRepository.findByIdForReservation(item.getProductDiscount().getId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_DISCOUNT_NOT_FOUND));
+                discount.increaseRemainingQuantity(item.getQuantity());
             }
         }
 
