@@ -42,5 +42,16 @@ public interface ProductDiscountRepository extends JpaRepository<ProductDiscount
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select pd from ProductDiscount pd where pd.id = :id")
     Optional<ProductDiscount> findByIdForReservation(@Param("id") Long id);
+
+    List<ProductDiscount> findByStatusAndEndAtBefore(DiscountStatus status, LocalDateTime endAtExclusive);
+
+    List<ProductDiscount> findByStatusAndStartAtLessThanEqualAndEndAtGreaterThanEqualAndRemainingQuantityGreaterThan(
+            DiscountStatus status,
+            LocalDateTime startInclusive,
+            LocalDateTime endInclusive,
+            int remainingQuantityMin
+    );
+
+    List<ProductDiscount> findByStatusAndRemainingQuantity(DiscountStatus status, int remainingQuantity);
 }
 
