@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
@@ -57,7 +58,7 @@ public class ReservationService {
     private final ProductDiscountRepository productDiscountRepository;
     private final ReservationRepository reservationRepository;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationCreateResponse createReservation(String authorization, ReservationCreateRequest request) {
         validateRequiredFields(request);
 
@@ -81,14 +82,14 @@ public class ReservationService {
         LocalDateTime now = LocalDateTime.now();
 
         for (ReservationCreateRequest.ReservationItemCreateRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
+            Product product = productRepository.findByIdForReservation(itemRequest.getProductId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
             if (!product.getStore().getId().equals(store.getId())) {
                 throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
             }
 
-            ProductDiscount discount = productDiscountRepository.findById(itemRequest.getProductDiscountId())
+            ProductDiscount discount = productDiscountRepository.findByIdForReservation(itemRequest.getProductDiscountId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.DISCOUNT_NOT_AVAILABLE));
 
             if (!discount.getProduct().getId().equals(product.getId()) || !discount.isActiveNow(now)) {
@@ -199,7 +200,7 @@ public class ReservationService {
         );
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationCancelResponse cancelReservation(String authorization, Long reservationId) {
         Long userId = authService.getAuthenticatedUserId(authorization);
         userRepository.findById(userId)
@@ -221,9 +222,13 @@ public class ReservationService {
         }
 
         for (ReservationItem item : reservation.getItems()) {
-            item.getProduct().increaseStock(item.getQuantity());
+            Product product = productRepository.findByIdForReservation(item.getProduct().getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            product.increaseStock(item.getQuantity());
             if (item.getProductDiscount() != null) {
-                item.getProductDiscount().increaseRemainingQuantity(item.getQuantity());
+                ProductDiscount discount = productDiscountRepository.findByIdForReservation(item.getProductDiscount().getId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_DISCOUNT_NOT_FOUND));
+                discount.increaseRemainingQuantity(item.getQuantity());
             }
         }
 

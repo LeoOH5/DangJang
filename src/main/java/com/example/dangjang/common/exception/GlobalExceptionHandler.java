@@ -3,7 +3,10 @@ package com.example.dangjang.common.exception;
 import com.example.dangjang.common.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -77,6 +80,33 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler({
+            ObjectOptimisticLockingFailureException.class,
+            PessimisticLockingFailureException.class
+    })
+    public ResponseEntity<ErrorResponse> handleReservationConcurrency(Exception e) {
+        log.warn("Reservation concurrency conflict", e);
+        ErrorCode code = ErrorCode.CONCURRENT_RESERVATION_CONFLICT;
+        ErrorResponse response = ErrorResponse.builder()
+                .success(false)
+                .code(code.getCode())
+                .message(code.getMessage())
+                .status(code.getStatus().value())
+                .timestamp(LocalDateTime.now())
+                .errors(null)
+                .build();
+        return ResponseEntity.status(code.getStatus()).body(response);
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ErrorResponse> handleJpaSystemException(JpaSystemException e) {
+        String message = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        if (message != null && message.contains("Record has changed since last read")) {
+            return handleReservationConcurrency(e);
+        }
+        throw e;
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
