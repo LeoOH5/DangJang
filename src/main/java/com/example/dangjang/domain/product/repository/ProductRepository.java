@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +21,20 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByStoreIdAndName(Long storeId, String name);
 
-    Page<Product> findByNameContainingIgnoreCaseAndStatusNot(String keyword, ProductStatus status, Pageable pageable);
+    @Query("""
+            select p from Product p
+            where p.status <> :excludedStatus
+            and lower(p.name) like lower(concat('%', :keyword, '%'))
+            and (:minPrice is null or p.originalPrice >= :minPrice)
+            and (:maxPrice is null or p.originalPrice <= :maxPrice)
+            """)
+    Page<Product> searchByNameAndPriceRange(
+            @Param("keyword") String keyword,
+            @Param("excludedStatus") ProductStatus excludedStatus,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            Pageable pageable
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id = :id")

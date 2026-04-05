@@ -2,8 +2,6 @@ package com.example.dangjang.domain.store.service;
 
 import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
-import com.example.dangjang.domain.market.entity.Market;
-import com.example.dangjang.domain.market.entity.MarketStatus;
 import com.example.dangjang.domain.discount.entity.DiscountStatus;
 import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
@@ -16,12 +14,15 @@ import com.example.dangjang.domain.store.dto.ProductWithDiscountResponse;
 import com.example.dangjang.domain.store.dto.StoreCreateRequest;
 import com.example.dangjang.domain.store.dto.StoreCreateResponse;
 import com.example.dangjang.domain.store.dto.StoreDetailResponse;
+import com.example.dangjang.domain.store.dto.StoreSearchResponse;
+import com.example.dangjang.domain.store.dto.StoreSearchSummaryResponse;
 import com.example.dangjang.domain.store.dto.StoreUpdateRequest;
 import com.example.dangjang.domain.store.dto.StoreUpdateResponse;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.entity.StoreStatus;
 import com.example.dangjang.domain.store.repository.StoreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,6 +96,64 @@ public class StoreService {
         );
 
         return new StoreUpdateResponse(store.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public StoreSearchResponse searchStores(
+            String keyword,
+            Long marketId,
+            String city,
+            String district,
+            int page,
+            int size
+    ) {
+        String kw = keyword != null ? keyword.trim() : "";
+        String c = city != null ? city.trim() : "";
+        String d = district != null ? district.trim() : "";
+
+        boolean hasKeyword = !kw.isEmpty();
+        boolean hasMarket = marketId != null;
+        boolean hasCity = !c.isEmpty();
+        boolean hasDistrict = !d.isEmpty();
+        if (!hasKeyword && !hasMarket && !hasCity && !hasDistrict) {
+            throw new BusinessException(ErrorCode.INVALID_SEARCH_CONDITION);
+        }
+
+        var pageable = PageRequest.of(page, size);
+        var result = storeRepository.searchStores(
+                hasKeyword ? kw : null,
+                marketId,
+                hasCity ? c : null,
+                hasDistrict ? d : null,
+                StoreStatus.INACTIVE,
+                MarketStatus.ACTIVE,
+                pageable
+        );
+
+        var content = result.getContent().stream()
+                .map(store -> {
+                    Market m = store.getMarket();
+                    return new StoreSearchSummaryResponse(
+                            store.getId(),
+                            m.getId(),
+                            m.getName(),
+                            m.getCity(),
+                            m.getDistrict(),
+                            store.getName(),
+                            store.getDescription(),
+                            store.getAddress(),
+                            store.getStatus()
+                    );
+                })
+                .toList();
+
+        return new StoreSearchResponse(
+                content,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @Transactional(readOnly = true)

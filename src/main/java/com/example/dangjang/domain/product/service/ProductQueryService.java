@@ -1,5 +1,7 @@
 package com.example.dangjang.domain.product.service;
 
+import com.example.dangjang.common.exception.BusinessException;
+import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
 import com.example.dangjang.domain.product.dto.ProductSearchResponse;
@@ -24,11 +26,17 @@ public class ProductQueryService {
     private final ProductDiscountRepository productDiscountRepository;
 
     @Transactional(readOnly = true)
-    public ProductSearchResponse searchProducts(String keyword, int page, int size) {
+    public ProductSearchResponse searchProducts(String keyword, BigDecimal minPrice, BigDecimal maxPrice, int page, int size) {
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new BusinessException(ErrorCode.INVALID_SEARCH_CONDITION);
+        }
+
         PageRequest pageable = PageRequest.of(page, size);
-        var resultPage = productRepository.findByNameContainingIgnoreCaseAndStatusNot(
+        var resultPage = productRepository.searchByNameAndPriceRange(
                 keyword,
                 ProductStatus.INACTIVE,
+                minPrice,
+                maxPrice,
                 pageable
         );
 
