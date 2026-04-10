@@ -33,7 +33,7 @@ public enum ErrorCode {
     MARKET_ALREADY_EXISTS(HttpStatus.CONFLICT, "MARKET_ALREADY_EXISTS", "이미 등록된 시장입니다."),
 
     // Store
-    STORE_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE_001", "존재하지 않는 매장입니다."),
+    STORE_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE_NOT_FOUND", "존재하지 않는 매장입니다."),
     STORE_INACTIVE(HttpStatus.BAD_REQUEST, "STORE_002", "비활성화된 매장입니다."),
     FAVORITE_ALREADY_EXISTS(HttpStatus.CONFLICT, "FAVORITE_ALREADY_EXISTS", "이미 즐겨찾기에 등록된 매장입니다."),
     FAVORITE_NOT_FOUND(HttpStatus.NOT_FOUND, "FAVORITE_NOT_FOUND", "즐겨찾기에 등록되지 않은 매장입니다."),
