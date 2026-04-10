@@ -7,6 +7,8 @@ import com.example.dangjang.domain.reservation.entity.Reservation;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.review.dto.ReviewCreateRequest;
 import com.example.dangjang.domain.review.dto.ReviewCreateResponse;
+import com.example.dangjang.domain.review.dto.ReviewUpdateRequest;
+import com.example.dangjang.domain.review.dto.ReviewUpdateResponse;
 import com.example.dangjang.domain.review.entity.Review;
 import com.example.dangjang.domain.review.repository.ReviewRepository;
 import com.example.dangjang.domain.store.entity.Store;
@@ -73,6 +75,30 @@ public class ReviewService {
                 saved.getRating(),
                 saved.getContent()
         );
+    }
+
+    @Transactional
+    public ReviewUpdateResponse updateReview(String authorization, Long reviewId, ReviewUpdateRequest request) {
+        if (request == null
+                || request.getRating() == null
+                || request.getContent() == null
+                || request.getContent().isBlank()) {
+            throw new BusinessException(ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.REVIEW_ACCESS_DENIED);
+        }
+
+        review.update(request.getRating(), request.getContent().trim());
+        return new ReviewUpdateResponse(review.getId(), review.getRating(), review.getContent());
     }
 }
 
