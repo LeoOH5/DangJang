@@ -10,6 +10,7 @@ import com.example.dangjang.domain.review.dto.StoreReviewListResponse;
 import com.example.dangjang.domain.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -70,6 +71,16 @@ public class ReviewController {
     ) {
         ReviewUpdateResponse response = reviewService.updateReview(authorization, reviewId, request);
         return ApiResponse.ok("리뷰가 수정되었습니다.", response);
+    }
+
+    @DeleteMapping("/reviews/{reviewId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<Void> deleteReview(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long reviewId
+    ) {
+        reviewService.deleteReview(authorization, reviewId);
+        return ApiResponse.ok("리뷰가 삭제되었습니다.");
     }
 }
 

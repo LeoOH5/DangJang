@@ -109,6 +109,22 @@ public class ReviewService {
         return new ReviewUpdateResponse(review.getId(), review.getRating(), review.getContent());
     }
 
+    @Transactional
+    public void deleteReview(String authorization, Long reviewId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.REVIEW_ACCESS_DENIED);
+        }
+
+        reviewRepository.delete(review);
+    }
+
     @Transactional(readOnly = true)
     public StoreReviewListResponse getStoreReviews(Long storeId, int page, int size) {
         storeRepository.findById(storeId)
