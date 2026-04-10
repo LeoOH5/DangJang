@@ -5,15 +5,19 @@ import com.example.dangjang.domain.review.dto.ReviewCreateRequest;
 import com.example.dangjang.domain.review.dto.ReviewCreateResponse;
 import com.example.dangjang.domain.review.dto.ReviewUpdateRequest;
 import com.example.dangjang.domain.review.dto.ReviewUpdateResponse;
+import com.example.dangjang.domain.review.dto.MyReviewListResponse;
+import com.example.dangjang.domain.review.dto.StoreReviewListResponse;
 import com.example.dangjang.domain.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +27,28 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReviewController {
 
     private final ReviewService reviewService;
+
+    @GetMapping("/reviews/me")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<MyReviewListResponse> getMyReviews(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        MyReviewListResponse response = reviewService.getMyReviews(authorization, page, size);
+        return ApiResponse.ok("내 리뷰 목록 조회에 성공했습니다.", response);
+    }
+
+    @GetMapping("/stores/{storeId}/reviews")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<StoreReviewListResponse> getStoreReviews(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        StoreReviewListResponse response = reviewService.getStoreReviews(storeId, page, size);
+        return ApiResponse.ok("리뷰 목록 조회에 성공했습니다.", response);
+    }
 
     @PostMapping("/stores/{storeId}/reviews")
     @ResponseStatus(HttpStatus.CREATED)

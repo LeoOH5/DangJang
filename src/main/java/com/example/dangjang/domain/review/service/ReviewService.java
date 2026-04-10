@@ -7,6 +7,10 @@ import com.example.dangjang.domain.reservation.entity.Reservation;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.review.dto.ReviewCreateRequest;
 import com.example.dangjang.domain.review.dto.ReviewCreateResponse;
+import com.example.dangjang.domain.review.dto.MyReviewListResponse;
+import com.example.dangjang.domain.review.dto.MyReviewSummaryResponse;
+import com.example.dangjang.domain.review.dto.StoreReviewListResponse;
+import com.example.dangjang.domain.review.dto.StoreReviewSummaryResponse;
 import com.example.dangjang.domain.review.dto.ReviewUpdateRequest;
 import com.example.dangjang.domain.review.dto.ReviewUpdateResponse;
 import com.example.dangjang.domain.review.entity.Review;
@@ -16,8 +20,12 @@ import com.example.dangjang.domain.store.repository.StoreRepository;
 import com.example.dangjang.domain.user.entity.User;
 import com.example.dangjang.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -99,6 +107,78 @@ public class ReviewService {
 
         review.update(request.getRating(), request.getContent().trim());
         return new ReviewUpdateResponse(review.getId(), review.getRating(), review.getContent());
+    }
+
+    @Transactional(readOnly = true)
+    public StoreReviewListResponse getStoreReviews(Long storeId, int page, int size) {
+        storeRepository.findById(storeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        long reviewCount = reviewRepository.countByStore_Id(storeId);
+        Double avgRaw = reviewRepository.averageRatingByStoreId(storeId);
+        BigDecimal averageRating = BigDecimal.valueOf(avgRaw == null ? 0.0 : avgRaw)
+                .setScale(1, RoundingMode.HALF_UP);
+
+        var pageable = PageRequest.of(safePage, safeSize);
+        var result = reviewRepository.findByStore_IdOrderByCreatedAtDesc(storeId, pageable);
+
+        var content = result.getContent().stream()
+                .map(r -> new StoreReviewSummaryResponse(
+                        r.getId(),
+                        r.getUser().getName(),
+                        r.getRating(),
+                        r.getContent(),
+                        r.getCreatedAt().toString()
+                ))
+                .toList();
+
+        return new StoreReviewListResponse(
+                averageRating,
+                reviewCount,
+                content,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public MyReviewListResponse getMyReviews(String authorization, int page, int size) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        var pageable = PageRequest.of(safePage, safeSize);
+        var result = reviewRepository.findByUser_IdOrderByCreatedAtDesc(userId, pageable);
+
+        var content = result.getContent().stream()
+                .map(r -> {
+                    Store store = r.getStore();
+                    return new MyReviewSummaryResponse(
+                            r.getId(),
+                            store.getId(),
+                            store.getName(),
+                            r.getRating(),
+                            r.getContent(),
+                            r.getCreatedAt().toString()
+                    );
+                })
+                .toList();
+
+        return new MyReviewListResponse(
+                content,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 }
 
