@@ -1,6 +1,7 @@
 package com.example.dangjang.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,6 +14,9 @@ public class ApiResponse<T> {
     private final boolean success;
     private final String code;
     private final String message;
+
+    @JsonProperty
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private final T data;
 
     public static <T> ApiResponse<T> ok(T data) {
