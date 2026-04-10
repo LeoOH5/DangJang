@@ -69,7 +69,12 @@ public enum ErrorCode {
     RESERVATION_ALREADY_CANCELED(HttpStatus.CONFLICT, "RESERVATION_ALREADY_CANCELED", "이미 취소된 예약입니다."),
     STORE_OWNER_FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "매장 주인만 접근할 수 있습니다."),
     STORE_RESERVATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "해당 매장의 예약을 조회할 권한이 없습니다."),
-    CONCURRENT_RESERVATION_CONFLICT(HttpStatus.CONFLICT, "CONCURRENT_RESERVATION_CONFLICT", "동시에 예약이 처리되어 재시도가 필요합니다.");
+    CONCURRENT_RESERVATION_CONFLICT(HttpStatus.CONFLICT, "CONCURRENT_RESERVATION_CONFLICT", "동시에 예약이 처리되어 재시도가 필요합니다."),
+
+    // Review
+    INVALID_RATING_VALUE(HttpStatus.BAD_REQUEST, "INVALID_RATING_VALUE", "평점은 1점부터 5점까지 입력 가능합니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "REVIEW_ALREADY_EXISTS", "이미 해당 예약에 대한 리뷰를 작성했습니다."),
+    REVIEW_NOT_ALLOWED(HttpStatus.FORBIDDEN, "REVIEW_NOT_ALLOWED", "픽업 완료한 예약에 대해서만 리뷰를 작성할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;

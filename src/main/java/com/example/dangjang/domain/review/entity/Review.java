@@ -74,7 +74,7 @@ public class Review extends BaseTimeEntity {
 
     private void validateRating(Integer rating) {
         if (rating == null || rating < 1 || rating > 5) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(ErrorCode.INVALID_RATING_VALUE);
         }
     }
 }
