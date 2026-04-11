@@ -6,6 +6,7 @@ import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.notification.dto.NotificationItemResponse;
 import com.example.dangjang.domain.notification.dto.NotificationListResponse;
 import com.example.dangjang.domain.notification.dto.NotificationReadResponse;
+import com.example.dangjang.domain.notification.dto.NotificationUnreadCountResponse;
 import com.example.dangjang.domain.notification.entity.Notification;
 import com.example.dangjang.domain.notification.repository.NotificationRepository;
 import com.example.dangjang.domain.user.repository.UserRepository;
@@ -45,6 +46,15 @@ public class NotificationService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationUnreadCountResponse getUnreadCount(String authorization) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+        long count = notificationRepository.countByUser_IdAndIsReadFalse(userId);
+        return new NotificationUnreadCountResponse(count);
     }
 
     @Transactional

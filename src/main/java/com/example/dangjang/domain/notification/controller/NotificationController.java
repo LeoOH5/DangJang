@@ -6,6 +6,7 @@ import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.notification.dto.NotificationListResponse;
 import com.example.dangjang.domain.notification.dto.NotificationReadResponse;
+import com.example.dangjang.domain.notification.dto.NotificationUnreadCountResponse;
 import com.example.dangjang.domain.notification.service.NotificationService;
 import com.example.dangjang.domain.notification.service.NotificationSseService;
 import com.example.dangjang.domain.user.repository.UserRepository;
@@ -41,6 +42,15 @@ public class NotificationController {
     ) {
         NotificationListResponse response = notificationService.getMyNotifications(authorization, page, size);
         return ApiResponse.ok("알림 목록 조회에 성공했습니다.", response);
+    }
+
+    @GetMapping("/unread-count")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<NotificationUnreadCountResponse> getUnreadNotificationCount(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        NotificationUnreadCountResponse response = notificationService.getUnreadCount(authorization);
+        return ApiResponse.ok("읽지 않은 알림 개수 조회에 성공했습니다", response);
     }
 
     @PatchMapping("/read-all")
