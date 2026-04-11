@@ -5,6 +5,7 @@ import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.notification.dto.NotificationListResponse;
+import com.example.dangjang.domain.notification.dto.NotificationReadResponse;
 import com.example.dangjang.domain.notification.service.NotificationService;
 import com.example.dangjang.domain.notification.service.NotificationSseService;
 import com.example.dangjang.domain.user.repository.UserRepository;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,6 +43,15 @@ public class NotificationController {
         return ApiResponse.ok("알림 목록 조회에 성공했습니다.", response);
     }
 
+    @PatchMapping("/{notificationId}/read")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<NotificationReadResponse> markNotificationAsRead(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long notificationId
+    ) {
+        NotificationReadResponse response = notificationService.markAsRead(authorization, notificationId);
+        return ApiResponse.ok("알림을 읽음 처리했습니다.", response);
+    }
 
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(

@@ -5,6 +5,7 @@ import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.auth.service.AuthService;
 import com.example.dangjang.domain.notification.dto.NotificationItemResponse;
 import com.example.dangjang.domain.notification.dto.NotificationListResponse;
+import com.example.dangjang.domain.notification.dto.NotificationReadResponse;
 import com.example.dangjang.domain.notification.entity.Notification;
 import com.example.dangjang.domain.notification.repository.NotificationRepository;
 import com.example.dangjang.domain.user.repository.UserRepository;
@@ -44,6 +45,27 @@ public class NotificationService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    @Transactional
+    public NotificationReadResponse markAsRead(String authorization, Long notificationId) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_ACCESS_DENIED);
+        }
+
+        if (notification.isRead()) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_ALREADY_READ);
+        }
+
+        notification.markAsRead();
+        return new NotificationReadResponse(notification.getId(), true);
     }
 
     private NotificationItemResponse toItem(Notification n) {
