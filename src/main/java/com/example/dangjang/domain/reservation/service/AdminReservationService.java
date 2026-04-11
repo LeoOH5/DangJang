@@ -14,6 +14,7 @@ import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
 import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.repository.ProductRepository;
+import com.example.dangjang.domain.notification.service.NotificationDispatchService;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.repository.StoreRepository;
@@ -52,6 +53,7 @@ public class AdminReservationService {
     private final ProductRepository productRepository;
     private final ProductDiscountRepository productDiscountRepository;
     private final ReservationRepository reservationRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional(readOnly = true)
     public AdminReservationListResponse getStoreReservations(
@@ -121,6 +123,7 @@ public class AdminReservationService {
         }
 
         reservation.changeStatus("CONFIRMED");
+        notificationDispatchService.notifyReservationConfirmed(reservation);
         return new ReservationConfirmResponse(reservation.getId(), "CONFIRMED");
     }
 
@@ -163,6 +166,7 @@ public class AdminReservationService {
         }
 
         reservation.rejectWithReason(reason);
+        notificationDispatchService.notifyReservationRejected(reservation);
         return new ReservationRejectResponse(reservation.getId(), "REJECTED");
     }
 

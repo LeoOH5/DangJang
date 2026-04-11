@@ -15,6 +15,7 @@ import com.example.dangjang.domain.reservation.dto.ReservationListResponse;
 import com.example.dangjang.domain.reservation.dto.ReservationSummaryResponse;
 import com.example.dangjang.domain.reservation.entity.Reservation;
 import com.example.dangjang.domain.reservation.entity.ReservationItem;
+import com.example.dangjang.domain.notification.service.NotificationDispatchService;
 import com.example.dangjang.domain.reservation.repository.ReservationRepository;
 import com.example.dangjang.domain.store.entity.Store;
 import com.example.dangjang.domain.store.repository.StoreRepository;
@@ -57,6 +58,7 @@ public class ReservationService {
     private final ProductRepository productRepository;
     private final ProductDiscountRepository productDiscountRepository;
     private final ReservationRepository reservationRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservationCreateResponse createReservation(String authorization, ReservationCreateRequest request) {
@@ -116,6 +118,7 @@ public class ReservationService {
         }
 
         Reservation saved = reservationRepository.save(reservation);
+        notificationDispatchService.notifyReservationRequested(saved);
 
         for (ReservationItem item : saved.getItems()) {
             responseItems.add(new ReservationCreateResponse.ReservationItemResponse(
