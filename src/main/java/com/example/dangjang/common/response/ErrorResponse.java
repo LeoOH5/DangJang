@@ -1,5 +1,6 @@
 package com.example.dangjang.common.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Getter
 @Builder
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class ErrorResponse {
 
     private final boolean success;
@@ -16,6 +18,9 @@ public class ErrorResponse {
     private final int status;
     private final LocalDateTime timestamp;
     private final List<FieldErrorDetail> errors;
+
+    @Builder.Default
+    private final Object data = null;
 
     @Builder
     public static class FieldErrorDetail {
