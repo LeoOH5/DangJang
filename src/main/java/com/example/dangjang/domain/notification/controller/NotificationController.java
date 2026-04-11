@@ -43,6 +43,15 @@ public class NotificationController {
         return ApiResponse.ok("알림 목록 조회에 성공했습니다.", response);
     }
 
+    @PatchMapping("/read-all")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<Void> markAllNotificationsAsRead(
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        notificationService.markAllAsRead(authorization);
+        return ApiResponse.ok("전체 알림을 읽음 처리했습니다.");
+    }
+
     @PatchMapping("/{notificationId}/read")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<NotificationReadResponse> markNotificationAsRead(

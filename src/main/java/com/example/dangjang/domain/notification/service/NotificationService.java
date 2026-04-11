@@ -68,6 +68,14 @@ public class NotificationService {
         return new NotificationReadResponse(notification.getId(), true);
     }
 
+    @Transactional
+    public void markAllAsRead(String authorization) {
+        Long userId = authService.getAuthenticatedUserId(authorization);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+        notificationRepository.markAllAsReadByUserId(userId);
+    }
+
     private NotificationItemResponse toItem(Notification n) {
         return new NotificationItemResponse(
                 n.getId(),
