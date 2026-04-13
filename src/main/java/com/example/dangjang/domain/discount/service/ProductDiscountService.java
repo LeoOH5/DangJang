@@ -14,6 +14,7 @@ import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
 import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.entity.ProductStatus;
+import com.example.dangjang.domain.notification.service.NotificationDispatchService;
 import com.example.dangjang.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class ProductDiscountService {
 
     private final ProductDiscountRepository productDiscountRepository;
     private final ProductRepository productRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional
     public ProductDiscountCreateResponse createProductDiscount(ProductDiscountCreateRequest request) {
@@ -70,6 +72,12 @@ public class ProductDiscountService {
                 .remainingQuantity(request.getRemainingQuantity())
                 .status(status)
                 .build());
+
+        notificationDispatchService.notifyDiscountCreatedForStoreFavorites(
+                product.getStore(),
+                saved.getId(),
+                saved.getTitle()
+        );
 
         return new ProductDiscountCreateResponse(saved.getId(), saved.getDiscountPrice(), saved.getStatus());
     }

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
@@ -35,8 +37,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @EntityGraph(attributePaths = {"user", "store"})
     Page<Reservation> findByStore_IdAndStatusOrderByIdDesc(Long storeId, String status, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"store", "store.owner"})
+    @EntityGraph(attributePaths = {"store", "store.owner", "user"})
     @Query("select r from Reservation r where r.id = :id")
     Optional<Reservation> findWithStoreAndOwnerById(@Param("id") Long id);
+
+    @Query("""
+            select r from Reservation r
+            join fetch r.user
+            join fetch r.store
+            where r.status = 'CONFIRMED'
+            and r.pickupDate = :pickupDate
+            """)
+    List<Reservation> findConfirmedByPickupDate(@Param("pickupDate") LocalDate pickupDate);
 }
 

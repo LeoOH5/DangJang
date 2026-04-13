@@ -35,6 +35,7 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(null)
+                .data(null)
                 .build();
 
         return ResponseEntity.status(errorCode.getStatus()).body(response);
@@ -57,6 +58,7 @@ public class GlobalExceptionHandler {
                 .status(ErrorCode.INVALID_INPUT_VALUE.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(errors)
+                .data(null)
                 .build();
 
         return ResponseEntity.badRequest().body(response);
@@ -77,6 +79,7 @@ public class GlobalExceptionHandler {
                 .status(ErrorCode.INVALID_INPUT_VALUE.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(errors)
+                .data(null)
                 .build();
 
         return ResponseEntity.badRequest().body(response);
@@ -96,6 +99,7 @@ public class GlobalExceptionHandler {
                 .status(code.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(null)
+                .data(null)
                 .build();
         return ResponseEntity.status(code.getStatus()).body(response);
     }
@@ -120,6 +124,7 @@ public class GlobalExceptionHandler {
                 .status(ErrorCode.METHOD_NOT_ALLOWED.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(null)
+                .data(null)
                 .build();
 
         return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getStatus()).body(response);
@@ -136,6 +141,7 @@ public class GlobalExceptionHandler {
                 .status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value())
                 .timestamp(LocalDateTime.now())
                 .errors(null)
+                .data(null)
                 .build();
 
         return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
