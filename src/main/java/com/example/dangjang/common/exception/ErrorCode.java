@@ -81,7 +81,12 @@ public enum ErrorCode {
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "존재하지 않는 알림입니다."),
     NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "해당 알림에 접근할 권한이 없습니다."),
-    NOTIFICATION_ALREADY_READ(HttpStatus.BAD_REQUEST, "NTF_003", "이미 읽은 알림입니다.");
+    NOTIFICATION_ALREADY_READ(HttpStatus.BAD_REQUEST, "NTF_003", "이미 읽은 알림입니다."),
+
+    // Recommendation
+    RECOMMENDATION_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "REC_001", "추천 상품이 존재하지 않습니다."),
+    RECOMMENDATION_DATA_NOT_READY(HttpStatus.BAD_REQUEST, "REC_002", "추천 데이터를 아직 생성하지 않았습니다."),
+    RECOMMENDATION_AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REC_003", "추천 상품 집계 중 오류가 발생했습니다.");
 
     private final HttpStatus status;
     private final String code;
