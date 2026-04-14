@@ -4,6 +4,7 @@ import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.discount.entity.ProductDiscount;
 import com.example.dangjang.domain.discount.repository.ProductDiscountRepository;
+import com.example.dangjang.domain.product.dto.ProductDetailResponse;
 import com.example.dangjang.domain.product.dto.ProductSearchResponse;
 import com.example.dangjang.domain.product.dto.ProductSearchSummaryResponse;
 import com.example.dangjang.domain.product.entity.Product;
@@ -45,12 +46,48 @@ public class ProductQueryService {
                 .map(product -> toSummary(product, now))
                 .toList();
 
+
         return new ProductSearchResponse(
                 content,
                 resultPage.getNumber(),
                 resultPage.getSize(),
                 resultPage.getTotalElements(),
                 resultPage.getTotalPages()
+        );
+    }
+
+
+    @Transactional(readOnly = true)
+    public ProductDetailResponse getProductDetail(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+
+        LocalDateTime now = LocalDateTime.now();
+        ProductDiscount activeDiscount = productDiscountRepository.findByProduct(product).stream()
+                .filter(discount -> discount.isActiveNow(now))
+                .max((a, b) -> a.getId().compareTo(b.getId()))
+                .orElse(null);
+
+        boolean hasActiveDiscount = activeDiscount != null;
+        var store = product.getStore();
+        var market = store.getMarket();
+
+        return new ProductDetailResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                store.getId(),
+                store.getName(),
+                market.getId(),
+                market.getName(),
+                product.getOriginalPrice(),
+                product.getStockQuantity(),
+                product.getImageUrl(),
+                product.getStatus(),
+                hasActiveDiscount,
+                hasActiveDiscount ? activeDiscount.getDiscountPrice() : null,
+                hasActiveDiscount ? toDiscountLabel(activeDiscount) : null
         );
     }
 

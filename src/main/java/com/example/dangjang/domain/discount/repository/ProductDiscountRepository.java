@@ -43,6 +43,30 @@ public interface ProductDiscountRepository extends JpaRepository<ProductDiscount
     @Query("select pd from ProductDiscount pd where pd.id = :id")
     Optional<ProductDiscount> findByIdForReservation(@Param("id") Long id);
 
+    @Query("""
+            select pd from ProductDiscount pd
+            join fetch pd.product p
+            join fetch p.store s
+            join fetch s.market m
+            where pd.id in :ids
+            """)
+    List<ProductDiscount> findAllByIdInWithProductStoreMarket(@Param("ids") List<Long> ids);
+
+    @Query("""
+            select pd from ProductDiscount pd
+            where pd.product.id = :productId
+            and pd.status = :status
+            and pd.startAt <= :now
+            and pd.endAt >= :now
+            and pd.remainingQuantity > 0
+            order by pd.id desc
+            """)
+    List<ProductDiscount> findActiveCandidatesByProductId(
+            @Param("productId") Long productId,
+            @Param("status") DiscountStatus status,
+            @Param("now") LocalDateTime now
+    );
+
     List<ProductDiscount> findByStatusAndEndAtBefore(DiscountStatus status, LocalDateTime endAtExclusive);
 
     List<ProductDiscount> findByStatusAndStartAtLessThanEqualAndEndAtGreaterThanEqualAndRemainingQuantityGreaterThan(
