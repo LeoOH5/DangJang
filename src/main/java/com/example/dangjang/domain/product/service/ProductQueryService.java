@@ -10,7 +10,6 @@ import com.example.dangjang.domain.product.dto.ProductSearchSummaryResponse;
 import com.example.dangjang.domain.product.entity.Product;
 import com.example.dangjang.domain.product.entity.ProductStatus;
 import com.example.dangjang.domain.product.repository.ProductRepository;
-import com.example.dangjang.domain.recommendation.service.RecommendationScoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,6 @@ public class ProductQueryService {
 
     private final ProductRepository productRepository;
     private final ProductDiscountRepository productDiscountRepository;
-    private final RecommendationScoreService recommendationScoreService;
 
     @Transactional(readOnly = true)
     public ProductSearchResponse searchProducts(String keyword, BigDecimal minPrice, BigDecimal maxPrice, int page, int size) {
@@ -48,9 +46,6 @@ public class ProductQueryService {
                 .map(product -> toSummary(product, now))
                 .toList();
 
-        recommendationScoreService.trackSearchByProductIds(
-                resultPage.getContent().stream().map(Product::getId).toList()
-        );
 
         return new ProductSearchResponse(
                 content,
@@ -67,7 +62,6 @@ public class ProductQueryService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        recommendationScoreService.trackProductDetailView(productId);
 
         LocalDateTime now = LocalDateTime.now();
         ProductDiscount activeDiscount = productDiscountRepository.findByProduct(product).stream()

@@ -29,29 +29,38 @@ public class RecommendationScoreService {
     private final StringRedisTemplate stringRedisTemplate;
     private final ProductDiscountRepository productDiscountRepository;
 
-    public void trackSearchByProductIds(List<Long> productIds) {
+    public void recordSearchEvent(List<Long> productIds) {
         if (productIds == null || productIds.isEmpty()) {
-            return;
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
+
+        boolean recorded = false;
         for (Long productId : productIds) {
             if (productId == null) {
                 continue;
             }
             Long discountId = resolveActiveDiscountId(productId);
-            if (discountId != null) {
-                incrementScore(discountId, SEARCH_WEIGHT);
+            if (discountId == null) {
+                continue;
             }
+            incrementScore(discountId, SEARCH_WEIGHT);
+            recorded = true;
+        }
+
+        if (!recorded) {
+            throw new BusinessException(ErrorCode.RECOMMENDATION_PRODUCT_NOT_FOUND);
         }
     }
 
-    public void trackProductDetailView(Long productId) {
+    public void recordViewEvent(Long productId) {
         if (productId == null) {
-            return;
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         Long discountId = resolveActiveDiscountId(productId);
-        if (discountId != null) {
-            incrementScore(discountId, VIEW_WEIGHT);
+        if (discountId == null) {
+            throw new BusinessException(ErrorCode.RECOMMENDATION_PRODUCT_NOT_FOUND);
         }
+        incrementScore(discountId, VIEW_WEIGHT);
     }
 
     public void trackReservation(Long productDiscountId, int quantity) {
