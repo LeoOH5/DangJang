@@ -1,5 +1,6 @@
 package com.example.dangjang.domain.auth.dto;
 
+import com.example.dangjang.domain.user.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -8,6 +9,7 @@ import lombok.Getter;
 public class LoginResponse {
 
     private final String accessToken;
+    private final String refreshToken;
     private final String tokenType;
     private final UserInfo user;
 
@@ -17,6 +19,6 @@ public class LoginResponse {
         private final Long userId;
         private final String email;
         private final String name;
+        private final Role role;
     }
 }
-

@@ -1,6 +1,6 @@
 package com.example.dangjang.domain.discount.controller;
 
-import com.example.dangjang.common.annotation.AdminOnly;
+import com.example.dangjang.common.annotation.Auth;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountCreateResponse;
@@ -9,26 +9,27 @@ import com.example.dangjang.domain.discount.dto.ProductDiscountStatusUpdateRespo
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateRequest;
 import com.example.dangjang.domain.discount.dto.ProductDiscountUpdateResponse;
 import com.example.dangjang.domain.discount.service.ProductDiscountService;
+import com.example.dangjang.domain.user.entity.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 
 @RestController
 @RequestMapping("/api/v1/admin/product-discounts")
 @RequiredArgsConstructor
+@Auth(roles = Role.ADMIN)
 public class AdminProductDiscountController {
 
     private final ProductDiscountService productDiscountService;
 
-    @AdminOnly
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProductDiscountCreateResponse> createProductDiscount(
@@ -38,7 +39,6 @@ public class AdminProductDiscountController {
         return ApiResponse.created("할인 등록 성공", response);
     }
 
-    @AdminOnly
     @PutMapping("/{productDiscountId}")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<ProductDiscountUpdateResponse> updateProductDiscount(
@@ -49,7 +49,6 @@ public class AdminProductDiscountController {
         return ApiResponse.ok("상품 할인 수정 성공", response);
     }
 
-    @AdminOnly
     @PatchMapping("/{productDiscountId}/status")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<ProductDiscountStatusUpdateResponse> updateProductDiscountStatus(
@@ -61,4 +60,3 @@ public class AdminProductDiscountController {
         return ApiResponse.ok("할인 상태 변경 성공", response);
     }
 }
-

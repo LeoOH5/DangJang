@@ -1,26 +1,26 @@
 package com.example.dangjang.domain.auth.service;
 
+import com.example.dangjang.common.auth.JwtProvider;
+import com.example.dangjang.common.auth.LoginRateLimiter;
+import com.example.dangjang.common.auth.RefreshTokenStore;
+import com.example.dangjang.common.auth.TokenBlacklistService;
 import com.example.dangjang.common.exception.BusinessException;
 import com.example.dangjang.common.exception.ErrorCode;
 import com.example.dangjang.domain.auth.dto.LoginRequest;
 import com.example.dangjang.domain.auth.dto.LoginResponse;
+import com.example.dangjang.domain.auth.dto.RefreshTokenRequest;
 import com.example.dangjang.domain.auth.dto.SignUpRequest;
 import com.example.dangjang.domain.auth.dto.SignUpResponse;
+import com.example.dangjang.domain.auth.dto.TokenPairResponse;
+import com.example.dangjang.domain.user.entity.Role;
 import com.example.dangjang.domain.user.entity.User;
 import com.example.dangjang.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.concurrent.TimeUnit;
-import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.regex.Pattern;
 
 @Service
@@ -33,13 +33,14 @@ public class AuthService {
             Pattern.compile("^\\d{2,3}-\\d{3,4}-\\d{4}$");
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$");
-    private static final Pattern EXP_PATTERN = Pattern.compile("\"exp\"\\s*:\\s*(\\d+)");
-
-    @Value("${admin.secret-key}")
-    private String jwtSecretKey;
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final UserRepository userRepository;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenStore refreshTokenStore;
+    private final LoginRateLimiter loginRateLimiter;
 
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
@@ -60,11 +61,14 @@ public class AuthService {
             throw new BusinessException(ErrorCode.AUTH_EMAIL_DUPLICATED);
         }
 
+        Role role = request.getRole() != null ? request.getRole() : Role.USER;
+
         User user = User.builder()
                 .email(request.getEmail())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .phone(request.getPhone())
+                .role(role)
                 .build();
 
         User saved = userRepository.save(user);
@@ -72,7 +76,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String clientIp) {
         if (isBlank(request.getEmail()) || isBlank(request.getPassword())) {
             throw new BusinessException(ErrorCode.REQUIRED_FIELD_MISSING);
         }
@@ -81,195 +85,87 @@ public class AuthService {
             throw new BusinessException(ErrorCode.AUTH_INVALID_INPUT);
         }
 
+        loginRateLimiter.checkAndIncrement(clientIp, request.getEmail());
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
 
-        if (!user.getPassword().equals(request.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.AUTH_PASSWORD_MISMATCH);
         }
 
-        String accessToken = createJwtAccessToken(user);
+        loginRateLimiter.reset(clientIp, request.getEmail());
+
+        JwtProvider.TokenInfo access = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        JwtProvider.TokenInfo refresh = jwtProvider.createRefreshToken(user.getId());
+        refreshTokenStore.save(user.getId(), refresh.token(), Duration.ofMillis(jwtProvider.getRefreshValidityMillis()));
+
         return new LoginResponse(
-                accessToken,
+                access.token(),
+                refresh.token(),
                 "Bearer",
-                new LoginResponse.UserInfo(user.getId(), user.getEmail(), user.getName())
+                new LoginResponse.UserInfo(user.getId(), user.getEmail(), user.getName(), user.getRole())
         );
+    }
+
+    @Transactional(readOnly = true)
+    public TokenPairResponse refresh(RefreshTokenRequest request) {
+        if (request == null || isBlank(request.getRefreshToken())) {
+            throw new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+        }
+        JwtProvider.ParsedRefreshToken parsed = jwtProvider.parseRefresh(request.getRefreshToken());
+
+        if (!refreshTokenStore.matches(parsed.userId(), parsed.token())) {
+            throw new BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+        }
+
+        User user = userRepository.findById(parsed.userId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
+
+        JwtProvider.TokenInfo access = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        JwtProvider.TokenInfo refresh = jwtProvider.createRefreshToken(user.getId());
+        refreshTokenStore.save(user.getId(), refresh.token(), Duration.ofMillis(jwtProvider.getRefreshValidityMillis()));
+
+        return new TokenPairResponse(access.token(), refresh.token(), "Bearer");
     }
 
     @Transactional
     public void logout(String authorization) {
-        AuthTokenInfo tokenInfo = parseAndValidateAccessToken(authorization);
-        String token = tokenInfo.token();
-        long exp = tokenInfo.exp();
-        String blacklistKey = buildBlacklistKey(token);
+        String token = extractBearerToken(authorization);
+        JwtProvider.ParsedAccessToken parsed = jwtProvider.parseAccess(token);
 
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(blacklistKey))) {
+        if (tokenBlacklistService.isBlacklisted(parsed.token())) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
         }
-
-        long now = Instant.now().getEpochSecond();
-        long ttlSeconds = exp - now;
-        if (ttlSeconds <= 0) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-        }
-
-        stringRedisTemplate.opsForValue().set(blacklistKey, "1", ttlSeconds, TimeUnit.SECONDS);
+        tokenBlacklistService.blacklist(parsed.token(), parsed.expEpochSeconds());
+        refreshTokenStore.revoke(parsed.userId());
     }
 
     @Transactional(readOnly = true)
     public Long getAuthenticatedUserId(String authorization) {
-        AuthTokenInfo tokenInfo = parseAndValidateAccessToken(authorization);
-        String blacklistKey = buildBlacklistKey(tokenInfo.token());
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(blacklistKey))) {
+        String token = extractBearerToken(authorization);
+        JwtProvider.ParsedAccessToken parsed = jwtProvider.parseAccess(token);
+        if (tokenBlacklistService.isBlacklisted(parsed.token())) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
         }
-        return tokenInfo.userId();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
-
-    private String createJwtAccessToken(User user) {
-        Instant now = Instant.now();
-        long iat = now.getEpochSecond();
-        long exp = now.plusSeconds(60 * 60 * 24).getEpochSecond();
-
-        String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
-        String payloadJson = String.format(
-                "{\"sub\":%d,\"email\":\"%s\",\"name\":\"%s\",\"iat\":%d,\"exp\":%d}",
-                user.getId(),
-                escapeJson(user.getEmail()),
-                escapeJson(user.getName()),
-                iat,
-                exp
-        );
-
-        String header = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
-        String payload = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
-        String signingInput = header + "." + payload;
-
-        byte[] signatureBytes = hmacSha256(signingInput.getBytes(StandardCharsets.UTF_8), jwtSecretKey);
-        String signature = base64UrlEncode(signatureBytes);
-
-        return signingInput + "." + signature;
-    }
-
-    private byte[] hmacSha256(byte[] data, String secretKey) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            return mac.doFinal(data);
-        } catch (Exception e) {
-            throw new IllegalStateException("JWT signing failed", e);
-        }
-    }
-
-    private String base64UrlEncode(byte[] bytes) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String escapeJson(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return parsed.userId();
     }
 
     private String extractBearerToken(String authorization) {
         if (authorization == null || authorization.isBlank()) {
             throw new BusinessException(ErrorCode.AUTH_UNAUTHORIZED);
         }
-
-        String prefix = "Bearer ";
-        if (!authorization.startsWith(prefix)) {
+        if (!authorization.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
         }
-
-        String token = authorization.substring(prefix.length()).trim();
-        if (token.isBlank()) {
+        String token = authorization.substring(BEARER_PREFIX.length()).trim();
+        if (token.isEmpty()) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
         }
-
         return token;
     }
 
-    private AuthTokenInfo parseAndValidateAccessToken(String authorization) {
-        String token = extractBearerToken(authorization);
-        try {
-            String[] parts = token.split("\\.");
-            if (parts.length != 3) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-            }
-
-            String headerPart = parts[0];
-            String payloadPart = parts[1];
-            String signaturePart = parts[2];
-
-            String signingInput = headerPart + "." + payloadPart;
-            byte[] signatureBytes =
-                    hmacSha256(signingInput.getBytes(StandardCharsets.UTF_8), jwtSecretKey);
-            String computedSignaturePart = base64UrlEncode(signatureBytes);
-            if (!computedSignaturePart.equals(signaturePart)) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-            }
-
-            String payloadJson = new String(
-                    Base64.getUrlDecoder().decode(payloadPart),
-                    StandardCharsets.UTF_8
-            );
-
-            long userId = extractLongClaim(payloadJson, "sub");
-            var matcher = EXP_PATTERN.matcher(payloadJson);
-            if (!matcher.find()) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-            }
-
-            long exp = Long.parseLong(matcher.group(1));
-            long now = Instant.now().getEpochSecond();
-            if (exp <= now) {
-                throw new BusinessException(ErrorCode.AUTH_EXPIRED_TOKEN);
-            }
-
-            return new AuthTokenInfo(token, userId, exp);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-        }
-    }
-
-    private long extractLongClaim(String payloadJson, String claim) {
-        Pattern pattern = Pattern.compile("\"" + claim + "\"\\s*:\\s*(\\d+)");
-        var matcher = pattern.matcher(payloadJson);
-        if (!matcher.find()) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_TOKEN);
-        }
-        return Long.parseLong(matcher.group(1));
-    }
-
-    private String buildBlacklistKey(String token) {
-        return "auth:blacklist:" + sha256Hex(token);
-    }
-
-    private String sha256Hex(String value) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
-            char[] hexChars = new char[digest.length * 2];
-            char[] hexArray = "0123456789abcdef".toCharArray();
-            for (int i = 0; i < digest.length; i++) {
-                int v = digest[i] & 0xFF;
-                hexChars[i * 2] = hexArray[v >>> 4];
-                hexChars[i * 2 + 1] = hexArray[v & 0x0F];
-            }
-            return new String(hexChars);
-        } catch (Exception e) {
-            throw new IllegalStateException("SHA-256 failed", e);
-        }
-    }
-
-    private record AuthTokenInfo(String token, Long userId, Long exp) {
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
-

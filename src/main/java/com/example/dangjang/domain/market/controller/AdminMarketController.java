@@ -1,12 +1,13 @@
 package com.example.dangjang.domain.market.controller;
 
-import com.example.dangjang.common.annotation.AdminOnly;
+import com.example.dangjang.common.annotation.Auth;
 import com.example.dangjang.common.response.ApiResponse;
 import com.example.dangjang.domain.market.dto.MarketCreateRequest;
 import com.example.dangjang.domain.market.dto.MarketCreateResponse;
 import com.example.dangjang.domain.market.dto.MarketUpdateRequest;
 import com.example.dangjang.domain.market.dto.MarketUpdateResponse;
 import com.example.dangjang.domain.market.service.MarketService;
+import com.example.dangjang.domain.user.entity.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/markets")
 @RequiredArgsConstructor
+@Auth(roles = Role.ADMIN)
 public class AdminMarketController {
 
     private final MarketService marketService;
 
-    @AdminOnly
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<MarketCreateResponse> createMarket(@Valid @RequestBody MarketCreateRequest request) {
@@ -27,7 +28,6 @@ public class AdminMarketController {
         return ApiResponse.created("시장 등록 성공", response);
     }
 
-    @AdminOnly
     @PutMapping("/{marketId}")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<MarketUpdateResponse> updateMarket(
@@ -38,4 +38,3 @@ public class AdminMarketController {
         return ApiResponse.ok("시장 수정 성공", response);
     }
 }
-

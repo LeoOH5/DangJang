@@ -12,10 +12,7 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_405", "허용되지 않은 HTTP 메서드입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_500", "서버 내부 오류가 발생했습니다."),
 
-    // Auth
-    MISSING_ADMIN_KEY(HttpStatus.UNAUTHORIZED, "AUTH_001", "X-Admin-Key 헤더가 필요합니다."),
-    INVALID_ADMIN_KEY(HttpStatus.FORBIDDEN, "AUTH_002", "유효하지 않은 관리자 키입니다."),
-    ADMIN_ONLY(HttpStatus.FORBIDDEN, "AUTH_003", "관리자 권한이 필요한 요청입니다."),
+    // Auth (legacy admin-key codes removed — now JWT-role based)
 
     // User
     REQUIRED_FIELD_MISSING(HttpStatus.BAD_REQUEST, "REQUIRED_FIELD_MISSING", "필수 입력 값이 누락되었습니다."),
@@ -26,6 +23,8 @@ public enum ErrorCode {
     AUTH_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "로그인이 필요합니다."),
     AUTH_EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_EXPIRED_TOKEN", "만료된 토큰입니다."),
     AUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+    AUTH_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AUTH_RATE_LIMIT_EXCEEDED", "잠시 후 다시 시도해주세요."),
+    AUTH_REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_TOKEN_INVALID", "유효하지 않은 리프레시 토큰입니다."),
 
     // Market
     MARKET_NOT_FOUND(HttpStatus.NOT_FOUND, "MARKET_001", "존재하지 않는 시장입니다."),
