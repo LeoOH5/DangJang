@@ -15,6 +15,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtProvider {
@@ -42,6 +43,7 @@ public class JwtProvider {
         Instant now = Instant.now();
         Instant exp = now.plusMillis(accessValidityMillis);
         String token = Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(userId))
                 .claim(ROLE_CLAIM, role.name())
                 .claim(TYPE_CLAIM, ACCESS_TYPE)
@@ -56,6 +58,7 @@ public class JwtProvider {
         Instant now = Instant.now();
         Instant exp = now.plusMillis(refreshValidityMillis);
         String token = Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(userId))
                 .claim(TYPE_CLAIM, REFRESH_TYPE)
                 .issuedAt(Date.from(now))
